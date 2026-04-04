@@ -49,7 +49,7 @@ class PomodoroTimer:
 
     def start(self):
         """Start or resume the timer."""
-        if self.status == TimerStatus.IDLE:
+        if self.status in (TimerStatus.IDLE, TimerStatus.COMPLETED):
             self.remaining_seconds = self.total_seconds
             self.status = TimerStatus.RUNNING
         elif self.status == TimerStatus.PAUSED:

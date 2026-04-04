@@ -30,6 +30,7 @@ class TimerView:
         self.on_points_changed = on_points_changed
         self._tick_timer: threading.Timer | None = None
         self._page: ft.Page | None = None
+        self._container: ft.Container | None = None
 
         # Load saved duration
         settings = storage.load_settings()
@@ -72,13 +73,8 @@ class TimerView:
         if self.timer.status == TimerStatus.RUNNING:
             self.timer.pause()
             self._stop_tick_loop()
-        elif self.timer.status in (TimerStatus.IDLE, TimerStatus.COMPLETED):
-            if self.timer.status == TimerStatus.COMPLETED:
-                self.timer.reset()
+        elif self.timer.status in (TimerStatus.IDLE, TimerStatus.COMPLETED, TimerStatus.PAUSED):
             self.timer.start()
-            self._start_tick_loop()
-        elif self.timer.status == TimerStatus.PAUSED:
-            self.timer.start()  # resume
             self._start_tick_loop()
         self._rebuild()
 

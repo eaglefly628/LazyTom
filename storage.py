@@ -13,11 +13,15 @@ def _ensure_dir():
 
 
 def load_data() -> dict:
-    """Load all app data from disk. Returns empty dict if no file."""
+    """Load all app data from disk. Returns empty dict if no file or on error."""
     if not os.path.exists(_DATA_FILE):
         return {}
-    with open(_DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(_DATA_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        return {}
 
 
 def save_data(data: dict):
