@@ -1,0 +1,9 @@
+[project]
+name = "lazytom"
+version = "0.1.0"
+description = "A Pomodoro timer app with points system, designed by a kid with procrastination tendencies"
+requires-python = ">=3.11"
+dependencies = ["flet>=0.25.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
