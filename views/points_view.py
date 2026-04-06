@@ -130,7 +130,7 @@ class PointsView:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=ft.Text(
                         "Points",
                         size=TITLE_FONT_SIZE,
@@ -140,17 +140,17 @@ class PointsView:
                 ),
                 ft.Container(height=PADDING_MD),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=balance_card,
                 ),
                 ft.Container(height=PADDING_LG),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=history_header,
                 ),
                 ft.Container(height=8),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=history_content,
                 ),
             ],
@@ -162,7 +162,7 @@ class PointsView:
         self._container = ft.Container(
             expand=True,
             bgcolor=BG_COLOR,
-            padding=ft.padding.only(top=PADDING_XL, bottom=PADDING_LG),
+            padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )
         return self._container

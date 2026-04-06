@@ -152,11 +152,11 @@ class TimerView:
 
         content_controls = [
             ft.Container(
-                padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                 content=top_bar,
             ),
             ft.Container(expand=True),
-            ft.Container(alignment=ft.alignment.center, content=ring),
+            ft.Container(alignment=ft.Alignment.CENTER, content=ring),
             ft.Container(height=PADDING_XL),
             controls,
             ft.Container(height=12),
@@ -180,7 +180,7 @@ class TimerView:
         self._container = ft.Container(
             expand=True,
             bgcolor=BG_COLOR,
-            padding=ft.padding.only(top=PADDING_XL, bottom=PADDING_LG),
+            padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )
         return self._container

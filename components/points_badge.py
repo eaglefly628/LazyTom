@@ -10,7 +10,7 @@ def create_points_badge(balance: int) -> ft.Container:
     return ft.Container(
         bgcolor=SURFACE_COLOR,
         border_radius=12,
-        padding=ft.padding.symmetric(horizontal=PADDING_SM + 4, vertical=PADDING_SM),
+        padding=ft.Padding.symmetric(horizontal=PADDING_SM + 4, vertical=PADDING_SM),
         content=ft.Row(
             spacing=4,
             alignment=ft.MainAxisAlignment.CENTER,

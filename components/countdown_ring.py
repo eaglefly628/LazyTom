@@ -79,7 +79,7 @@ def create_countdown_ring(formatted_time: str, progress: float) -> ft.Stack:
             ft.Container(
                 width=size,
                 height=size,
-                alignment=ft.alignment.center,
+                alignment=ft.Alignment.CENTER,
                 content=time_text,
             ),
         ],

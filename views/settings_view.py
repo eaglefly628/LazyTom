@@ -68,7 +68,7 @@ class SettingsView:
             chip = ft.Container(
                 bgcolor=TOMATO_RED if is_selected else SURFACE_COLOR,
                 border_radius=20,
-                padding=ft.padding.symmetric(horizontal=16, vertical=8),
+                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
                 on_click=lambda e, v=opt: on_change(
                     type("Event", (), {"control": type("Ctrl", (), {"value": v})()})()
                 ),
@@ -140,7 +140,7 @@ class SettingsView:
             scroll=ft.ScrollMode.AUTO,
             controls=[
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=ft.Text(
                         "Settings",
                         size=TITLE_FONT_SIZE,
@@ -150,17 +150,17 @@ class SettingsView:
                 ),
                 ft.Container(height=PADDING_MD),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=focus_section,
                 ),
                 ft.Container(height=PADDING_MD),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=break_section,
                 ),
                 ft.Container(height=PADDING_MD),
                 ft.Container(
-                    padding=ft.padding.symmetric(horizontal=PADDING_LG),
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
                     content=rules_section,
                 ),
             ],
@@ -172,7 +172,7 @@ class SettingsView:
         self._container = ft.Container(
             expand=True,
             bgcolor=BG_COLOR,
-            padding=ft.padding.only(top=PADDING_XL, bottom=PADDING_LG),
+            padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )
         return self._container
