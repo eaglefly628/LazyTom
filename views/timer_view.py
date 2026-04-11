@@ -1,6 +1,7 @@
 """Timer view — the main screen with countdown ring and controls."""
 
 import threading
+import time
 import flet as ft
 
 from theme import (
@@ -28,7 +29,8 @@ class TimerView:
         self.timer = PomodoroTimer(duration_minutes=25)
         self.points = points_manager
         self.on_points_changed = on_points_changed
-        self._tick_timer: threading.Timer | None = None
+        self._tick_thread: threading.Thread | None = None
+        self._running_flag = threading.Event()
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
 
@@ -50,24 +52,24 @@ class TimerView:
         self._rebuild()
 
     def _start_tick_loop(self):
-        """Start the 1-second tick loop using threading.Timer."""
-        if self.timer.status != TimerStatus.RUNNING:
+        """Start a background thread that ticks every second."""
+        if self._running_flag.is_set():
             return
+        self._running_flag.set()
 
-        def _tick():
-            self.timer.tick()
-            self._rebuild()
-            if self.timer.status == TimerStatus.RUNNING:
-                self._start_tick_loop()
+        def _loop():
+            while self._running_flag.is_set() and self.timer.status == TimerStatus.RUNNING:
+                time.sleep(1)
+                if self._running_flag.is_set() and self.timer.status == TimerStatus.RUNNING:
+                    self.timer.tick()
+                    self._rebuild()
 
-        self._tick_timer = threading.Timer(1.0, _tick)
-        self._tick_timer.daemon = True
-        self._tick_timer.start()
+        self._tick_thread = threading.Thread(target=_loop, daemon=True)
+        self._tick_thread.start()
 
     def _stop_tick_loop(self):
-        if self._tick_timer:
-            self._tick_timer.cancel()
-            self._tick_timer = None
+        self._running_flag.clear()
+        self._tick_thread = None
 
     def _on_play_pause(self, e):
         if self.timer.status == TimerStatus.RUNNING:
@@ -78,7 +80,8 @@ class TimerView:
             self._start_tick_loop()
         self._rebuild()
 
-    def _on_reset(self, e):
+    def _on_cancel(self, e):
+        """Cancel the current session — stop timer and go back to idle."""
         self._stop_tick_loop()
         self.timer.reset()
         self._rebuild()
@@ -127,7 +130,7 @@ class TimerView:
             is_running=is_running,
             is_idle=is_idle,
             on_play_pause=self._on_play_pause,
-            on_reset=self._on_reset,
+            on_cancel=self._on_cancel,
         )
 
         # Status text

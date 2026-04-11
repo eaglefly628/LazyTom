@@ -1,4 +1,4 @@
-"""Timer control buttons — play/pause and reset."""
+"""Timer control buttons — play/pause and cancel."""
 
 import flet as ft
 
@@ -9,15 +9,15 @@ def create_timer_controls(
     is_running: bool,
     is_idle: bool,
     on_play_pause,
-    on_reset,
+    on_cancel,
 ) -> ft.Row:
-    """Build the play/pause and reset buttons.
+    """Build the play/pause and cancel buttons.
 
     Args:
         is_running: Whether the timer is currently counting down.
         is_idle: Whether the timer is in idle/reset state.
         on_play_pause: Callback for the play/pause button.
-        on_reset: Callback for the reset button.
+        on_cancel: Callback for the cancel button.
     """
     # Play/pause button — larger, primary action
     play_pause_icon = ft.Icons.PAUSE_ROUNDED if is_running else ft.Icons.PLAY_ARROW_ROUNDED
@@ -33,17 +33,17 @@ def create_timer_controls(
         ),
     )
 
-    # Reset button — smaller, secondary action
-    reset_btn = ft.IconButton(
-        icon=ft.Icons.REPLAY_ROUNDED,
+    # Cancel button — stop current session, only visible when timer is active
+    cancel_btn = ft.IconButton(
+        icon=ft.Icons.CLOSE_ROUNDED,
         icon_color=TEXT_SECONDARY if is_idle else TEXT_PRIMARY,
         icon_size=28,
-        on_click=on_reset,
+        on_click=on_cancel,
         disabled=is_idle,
     )
 
     return ft.Row(
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=24,
-        controls=[reset_btn, play_pause_btn],
+        controls=[cancel_btn, play_pause_btn],
     )
