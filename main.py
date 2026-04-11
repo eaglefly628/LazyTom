@@ -64,17 +64,17 @@ def main(page: ft.Page):
         selected_index=0,
         on_change=lambda e: switch_tab(e.control.selected_index),
         destinations=[
-            ft.NavigationDestination(
+            ft.NavigationBarDestination(
                 icon=ft.Icons.TIMER_OUTLINED,
                 selected_icon=ft.Icons.TIMER,
                 label="Timer",
             ),
-            ft.NavigationDestination(
+            ft.NavigationBarDestination(
                 icon=ft.Icons.STARS_OUTLINED,
                 selected_icon=ft.Icons.STARS,
                 label="Points",
             ),
-            ft.NavigationDestination(
+            ft.NavigationBarDestination(
                 icon=ft.Icons.SETTINGS_OUTLINED,
                 selected_icon=ft.Icons.SETTINGS,
                 label="Settings",
