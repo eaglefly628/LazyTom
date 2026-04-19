@@ -1,7 +1,6 @@
 """Timer view — the main screen with countdown ring and controls."""
 
-import threading
-import time
+import asyncio
 import flet as ft
 
 from theme import (
@@ -29,8 +28,7 @@ class TimerView:
         self.timer = PomodoroTimer(duration_minutes=25)
         self.points = points_manager
         self.on_points_changed = on_points_changed
-        self._tick_thread: threading.Thread | None = None
-        self._running_flag = threading.Event()
+        self._is_ticking = False
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
 
@@ -44,32 +42,31 @@ class TimerView:
 
     def _on_timer_complete(self):
         """Called when a Pomodoro session finishes."""
-        self._stop_tick_loop()
+        self._is_ticking = False
         self.points.award_for_pomodoro(self.timer.duration_minutes)
         storage.save_points(self.points.to_dict())
         if self.on_points_changed:
             self.on_points_changed()
         self._rebuild()
 
+    async def _tick_loop(self):
+        """Async tick loop running in Flet's event loop — safe for UI updates."""
+        while self._is_ticking and self.timer.status == TimerStatus.RUNNING:
+            await asyncio.sleep(1)
+            if self._is_ticking and self.timer.status == TimerStatus.RUNNING:
+                self.timer.tick()
+                self._rebuild()
+
     def _start_tick_loop(self):
-        """Start a background thread that ticks every second."""
-        if self._running_flag.is_set():
+        """Schedule the async tick loop on Flet's event loop."""
+        if self._is_ticking:
             return
-        self._running_flag.set()
-
-        def _loop():
-            while self._running_flag.is_set() and self.timer.status == TimerStatus.RUNNING:
-                time.sleep(1)
-                if self._running_flag.is_set() and self.timer.status == TimerStatus.RUNNING:
-                    self.timer.tick()
-                    self._rebuild()
-
-        self._tick_thread = threading.Thread(target=_loop, daemon=True)
-        self._tick_thread.start()
+        self._is_ticking = True
+        if self._page:
+            self._page.run_task(self._tick_loop)
 
     def _stop_tick_loop(self):
-        self._running_flag.clear()
-        self._tick_thread = None
+        self._is_ticking = False
 
     def _on_play_pause(self, e):
         if self.timer.status == TimerStatus.RUNNING:
