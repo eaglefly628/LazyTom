@@ -157,7 +157,7 @@ class TasksView:
                         task.name,
                         size=BODY_FONT_SIZE,
                         color=TEXT_SECONDARY if task.done else TEXT_PRIMARY,
-                        decoration=ft.TextDecoration.LINE_THROUGH if task.done else None,
+                        style=ft.TextStyle(decoration=ft.TextDecoration.LINE_THROUGH) if task.done else None,
                     ),
                     ft.Text(
                         DIFFICULTY_LABELS[task.difficulty],
