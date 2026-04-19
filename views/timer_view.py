@@ -201,15 +201,6 @@ class TimerView:
             text_align=ft.TextAlign.CENTER,
         )
 
-        # Test button — small, only visible when idle
-        test_btn = ft.ElevatedButton(
-            visible=is_idle,
-            on_click=self._set_test_duration,
-            bgcolor=SURFACE_COLOR,
-            color=TEXT_SECONDARY,
-            content=ft.Text(f"Test ({TEST_DURATION_SECONDS}s)", size=CAPTION_FONT_SIZE),
-        )
-
         completed_text = None
         if self.timer.status == TimerStatus.COMPLETED:
             earned = max(1, round(self.timer.total_seconds / 60.0 * 0.4))
@@ -237,8 +228,20 @@ class TimerView:
         if completed_text:
             content_controls.insert(-1, completed_text)
 
+        # Test button between status and bottom spacer
+        if is_idle:
+            content_controls.append(ft.Container(height=8))
+            content_controls.append(
+                ft.IconButton(
+                    icon=ft.Icons.BUG_REPORT_OUTLINED,
+                    icon_color=TEXT_SECONDARY,
+                    icon_size=20,
+                    tooltip=f"Test ({TEST_DURATION_SECONDS}s)",
+                    on_click=self._set_test_duration,
+                ),
+            )
+
         content_controls.append(ft.Container(expand=True))
-        content_controls.append(test_btn)
 
         return ft.Column(
             expand=True,
