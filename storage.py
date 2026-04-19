@@ -53,3 +53,15 @@ def save_settings(settings_data: dict):
     data = load_data()
     data["settings"] = settings_data
     save_data(data)
+
+
+def load_tasks() -> dict:
+    """Load tasks section."""
+    return load_data().get("tasks", {})
+
+
+def save_tasks(tasks_data: dict):
+    """Save tasks section (merges with existing data)."""
+    data = load_data()
+    data["tasks"] = tasks_data
+    save_data(data)

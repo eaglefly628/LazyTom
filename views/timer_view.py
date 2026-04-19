@@ -37,6 +37,7 @@ class TimerView:
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
         self._seconds_since_tick = 0.0
+        self._current_task = None
 
         settings = storage.load_settings()
         duration = settings.get("focus_minutes", 25)
@@ -55,15 +56,16 @@ class TimerView:
 
     async def _render_loop(self):
         """Single loop: smooth ring animation at 30fps + 1-second ticks."""
+        import time
         interval = 1.0 / RENDER_FPS
-        self._seconds_since_tick = 0.0
+        last_tick_time = time.monotonic()
         while self._is_ticking and self.timer.status == TimerStatus.RUNNING:
             await asyncio.sleep(interval)
             if not self._is_ticking or self.timer.status != TimerStatus.RUNNING:
                 break
-            self._seconds_since_tick += interval
-            if self._seconds_since_tick >= 1.0:
-                self._seconds_since_tick -= 1.0
+            now = time.monotonic()
+            if now - last_tick_time >= 1.0:
+                last_tick_time += 1.0
                 self.timer.tick()
             self._rebuild_ring()
 
@@ -106,6 +108,11 @@ class TimerView:
             self.timer.set_duration_seconds(TEST_DURATION_SECONDS)
             self._rebuild()
 
+    def set_current_task(self, task):
+        """Set the task to work on. Shows task name on timer screen."""
+        self._current_task = task
+        self._rebuild()
+
     def _on_keyboard(self, e: ft.KeyboardEvent):
         if e.key == "Arrow Up":
             self._adjust_duration(5)
@@ -124,6 +131,8 @@ class TimerView:
             self._page.update()
 
     def _status_text(self) -> str:
+        if self._current_task and self.timer.status in (TimerStatus.RUNNING, TimerStatus.PAUSED):
+            return self._current_task.name
         status_map = {
             TimerStatus.IDLE: "Ready to focus",
             TimerStatus.RUNNING: "Focusing...",
@@ -160,7 +169,7 @@ class TimerView:
             icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
             icon_size=28,
             on_click=lambda _: self._adjust_duration(-5),
-            disabled=not can_adjust or self.timer.duration_minutes <= 1,
+            disabled=not can_adjust or self.timer.total_seconds <= 60,
             opacity=1.0 if can_adjust else 0.0,
         )
         plus_btn = ft.IconButton(
@@ -193,16 +202,18 @@ class TimerView:
         )
 
         # Test button — small, only visible when idle
-        test_btn = ft.Container(
+        test_btn = ft.TextButton(
             visible=is_idle,
             on_click=self._set_test_duration,
-            border_radius=12,
-            bgcolor=SURFACE_COLOR,
-            padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-            content=ft.Text(
-                f"Test ({TEST_DURATION_SECONDS}s)",
-                size=CAPTION_FONT_SIZE,
-                color=TEXT_SECONDARY,
+            content=ft.Container(
+                border_radius=12,
+                bgcolor=SURFACE_COLOR,
+                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+                content=ft.Text(
+                    f"Test ({TEST_DURATION_SECONDS}s)",
+                    size=CAPTION_FONT_SIZE,
+                    color=TEXT_SECONDARY,
+                ),
             ),
         )
 

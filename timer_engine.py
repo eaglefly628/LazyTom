@@ -57,10 +57,23 @@ class PomodoroTimer:
             self.remaining_seconds = self.total_seconds
 
     def adjust_duration(self, delta_minutes: int):
-        """Adjust duration by delta minutes. Only when idle. Minimum 1 min."""
-        if self.status == TimerStatus.IDLE:
-            new_minutes = max(1, self.duration_minutes + delta_minutes)
-            self.set_duration(new_minutes)
+        """Adjust duration. Step is 1min below 5, 5min at/above 5. Minimum 1 min."""
+        if self.status != TimerStatus.IDLE:
+            return
+        current = self.duration_minutes
+        if delta_minutes > 0:
+            if current < 5:
+                new = current + 1
+            else:
+                new = current + 5
+        else:
+            if current <= 5:
+                new = current - 1
+            else:
+                new = current - 5
+                if new < 5:
+                    new = 5
+        self.set_duration(max(1, new))
 
     def start(self):
         if self.status in (TimerStatus.IDLE, TimerStatus.COMPLETED):

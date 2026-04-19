@@ -7,14 +7,15 @@ import flet as ft
 
 from theme import BG_COLOR, TEXT_PRIMARY, TEXT_SECONDARY, TOMATO_RED
 from points_engine import PointsManager
+from task_engine import TaskManager
 from views.timer_view import TimerView
 from views.points_view import PointsView
+from views.tasks_view import TasksView
 from views.settings_view import SettingsView
 import storage
 
 
 def main(page: ft.Page):
-    # ── Page setup ───────────────────────────────────────
     page.title = "LazyTom"
     page.bgcolor = BG_COLOR
     page.padding = 0
@@ -28,6 +29,11 @@ def main(page: ft.Page):
     if saved_points:
         points.load_from_dict(saved_points)
 
+    task_mgr = TaskManager()
+    saved_tasks = storage.load_tasks()
+    if saved_tasks:
+        task_mgr.load_from_dict(saved_tasks)
+
     # ── Views ────────────────────────────────────────────
     def on_points_changed():
         points_view.rebuild()
@@ -37,24 +43,33 @@ def main(page: ft.Page):
         timer_view.timer.set_duration(settings.get("focus_minutes", 25))
         timer_view._rebuild()
 
+    def on_task_selected(task):
+        timer_view.set_current_task(task)
+        switch_tab(0)
+        nav_bar.selected_index = 0
+        page.update()
+
     timer_view = TimerView(points, on_points_changed=on_points_changed)
     points_view = PointsView(points)
+    tasks_view = TasksView(task_mgr, on_task_selected=on_task_selected)
     settings_view = SettingsView(on_settings_changed=on_settings_changed)
 
     # Build view controls
     timer_control = timer_view.build(page)
     points_control = points_view.build(page)
+    tasks_control = tasks_view.build(page)
     settings_control = settings_view.build(page)
 
     # ── Content area ─────────────────────────────────────
     content = ft.Container(expand=True, content=timer_control)
 
     def switch_tab(index: int):
-        views = [timer_control, points_control, settings_control]
+        views = [timer_control, points_control, tasks_control, settings_control]
         content.content = views[index]
-        # Refresh points view when switching to it
         if index == 1:
             points_view.rebuild()
+        if index == 2:
+            tasks_view.rebuild()
         page.update()
 
     # ── Bottom navigation ────────────────────────────────
@@ -75,6 +90,11 @@ def main(page: ft.Page):
                 label="Points",
             ),
             ft.NavigationBarDestination(
+                icon=ft.Icons.CHECKLIST_OUTLINED,
+                selected_icon=ft.Icons.CHECKLIST,
+                label="Tasks",
+            ),
+            ft.NavigationBarDestination(
                 icon=ft.Icons.SETTINGS_OUTLINED,
                 selected_icon=ft.Icons.SETTINGS,
                 label="Settings",
@@ -82,7 +102,6 @@ def main(page: ft.Page):
         ],
     )
 
-    # ── Page layout ──────────────────────────────────────
     page.add(content, nav_bar)
 
 

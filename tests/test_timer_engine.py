@@ -251,24 +251,61 @@ class TestSetDuration:
 # ════════════════════════════════════════════════════════════
 
 class TestAdjustDuration:
-    def test_increase_by_5(self):
+    def test_increase_above_5_steps_by_5(self):
         timer = PomodoroTimer(duration_minutes=25)
         timer.adjust_duration(5)
         assert timer.duration_minutes == 30
 
-    def test_decrease_by_5(self):
+    def test_decrease_above_5_steps_by_5(self):
         timer = PomodoroTimer(duration_minutes=25)
         timer.adjust_duration(-5)
         assert timer.duration_minutes == 20
 
-    def test_minimum_1_minute(self):
+    def test_increase_below_5_steps_by_1(self):
+        timer = PomodoroTimer(duration_minutes=3)
+        timer.adjust_duration(1)
+        assert timer.duration_minutes == 4
+
+    def test_decrease_at_5_steps_by_1(self):
+        timer = PomodoroTimer(duration_minutes=5)
+        timer.adjust_duration(-1)
+        assert timer.duration_minutes == 4
+
+    def test_decrease_below_5_steps_by_1(self):
+        timer = PomodoroTimer(duration_minutes=3)
+        timer.adjust_duration(-1)
+        assert timer.duration_minutes == 2
+
+    def test_decrease_above_5_snaps_to_5(self):
+        """Going down from 10 by -5 should land at 5, not below."""
         timer = PomodoroTimer(duration_minutes=10)
-        timer.adjust_duration(-10)
-        assert timer.duration_minutes == 1
+        timer.adjust_duration(-5)
+        assert timer.duration_minutes == 5
+
+    def test_decrease_from_7_snaps_to_5(self):
+        timer = PomodoroTimer(duration_minutes=7)
+        timer.adjust_duration(-5)
+        assert timer.duration_minutes == 5
+
+    def test_full_progression_down(self):
+        """25 → 20 → 15 → 10 → 5 → 4 → 3 → 2 → 1"""
+        timer = PomodoroTimer(duration_minutes=25)
+        expected = [20, 15, 10, 5, 4, 3, 2, 1, 1]
+        for exp in expected:
+            timer.adjust_duration(-1)
+            assert timer.duration_minutes == exp, f"Expected {exp}, got {timer.duration_minutes}"
+
+    def test_full_progression_up(self):
+        """1 → 2 → 3 → 4 → 5 → 10 → 15"""
+        timer = PomodoroTimer(duration_minutes=1)
+        expected = [2, 3, 4, 5, 10, 15]
+        for exp in expected:
+            timer.adjust_duration(1)
+            assert timer.duration_minutes == exp, f"Expected {exp}, got {timer.duration_minutes}"
 
     def test_cannot_go_below_1(self):
         timer = PomodoroTimer(duration_minutes=1)
-        timer.adjust_duration(-5)
+        timer.adjust_duration(-1)
         assert timer.duration_minutes == 1
 
     def test_rejected_when_running(self):
@@ -283,13 +320,6 @@ class TestAdjustDuration:
         timer.pause()
         timer.adjust_duration(5)
         assert timer.duration_minutes == 25
-
-    def test_multiple_adjustments(self):
-        timer = PomodoroTimer(duration_minutes=25)
-        timer.adjust_duration(5)
-        timer.adjust_duration(5)
-        timer.adjust_duration(5)
-        assert timer.duration_minutes == 40
 
     def test_remaining_seconds_updated(self):
         timer = PomodoroTimer(duration_minutes=25)
