@@ -181,6 +181,57 @@ class TestSetDuration:
 
 
 # ════════════════════════════════════════════════════════════
+# adjust_duration()
+# ════════════════════════════════════════════════════════════
+
+class TestAdjustDuration:
+    def test_increase_by_5(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.adjust_duration(5)
+        assert timer.duration_minutes == 30
+
+    def test_decrease_by_5(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.adjust_duration(-5)
+        assert timer.duration_minutes == 20
+
+    def test_minimum_5_minutes(self):
+        timer = PomodoroTimer(duration_minutes=10)
+        timer.adjust_duration(-10)
+        assert timer.duration_minutes == 5
+
+    def test_cannot_go_below_5(self):
+        timer = PomodoroTimer(duration_minutes=5)
+        timer.adjust_duration(-5)
+        assert timer.duration_minutes == 5
+
+    def test_rejected_when_running(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.start()
+        timer.adjust_duration(5)
+        assert timer.duration_minutes == 25
+
+    def test_rejected_when_paused(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.start()
+        timer.pause()
+        timer.adjust_duration(5)
+        assert timer.duration_minutes == 25
+
+    def test_multiple_adjustments(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.adjust_duration(5)
+        timer.adjust_duration(5)
+        timer.adjust_duration(5)
+        assert timer.duration_minutes == 40
+
+    def test_remaining_seconds_updated(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.adjust_duration(5)
+        assert timer.remaining_seconds == 30 * 60
+
+
+# ════════════════════════════════════════════════════════════
 # State transitions: start()
 # ════════════════════════════════════════════════════════════
 

@@ -44,8 +44,14 @@ class PomodoroTimer:
     def set_duration(self, minutes: int):
         """Change the timer duration. Only works when idle."""
         if self.status == TimerStatus.IDLE:
-            self.total_seconds = minutes * 60
+            self.total_seconds = max(0, minutes * 60)
             self.remaining_seconds = self.total_seconds
+
+    def adjust_duration(self, delta_minutes: int):
+        """Adjust duration by delta minutes. Only works when idle. Minimum 5 min."""
+        if self.status == TimerStatus.IDLE:
+            new_minutes = max(5, self.duration_minutes + delta_minutes)
+            self.set_duration(new_minutes)
 
     def start(self):
         """Start or resume the timer."""

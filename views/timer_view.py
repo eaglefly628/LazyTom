@@ -83,6 +83,23 @@ class TimerView:
         self.timer.reset()
         self._rebuild()
 
+    def _adjust_duration(self, delta: int):
+        """Adjust timer duration by delta minutes. Only when idle."""
+        if self.timer.status == TimerStatus.IDLE:
+            self.timer.adjust_duration(delta)
+            storage.save_settings({
+                "focus_minutes": self.timer.duration_minutes,
+                "break_minutes": storage.load_settings().get("break_minutes", 5),
+            })
+            self._rebuild()
+
+    def _on_keyboard(self, e: ft.KeyboardEvent):
+        """Handle keyboard shortcuts — up/down arrows ±5 min."""
+        if e.key == "Arrow Up":
+            self._adjust_duration(5)
+        elif e.key == "Arrow Down":
+            self._adjust_duration(-5)
+
     def _rebuild(self):
         """Rebuild and update the UI."""
         if self._page and self._container:
@@ -116,10 +133,34 @@ class TimerView:
             ],
         )
 
-        # Countdown ring
+        # Countdown ring with ±5min buttons on left/right (only when idle)
         ring = create_countdown_ring(
             self.timer.formatted_time,
             self.timer.progress,
+        )
+
+        can_adjust = self.timer.status == TimerStatus.IDLE
+        minus_btn = ft.IconButton(
+            icon=ft.Icons.REMOVE_ROUNDED,
+            icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
+            icon_size=28,
+            on_click=lambda _: self._adjust_duration(-5),
+            disabled=not can_adjust or self.timer.duration_minutes <= 5,
+            opacity=1.0 if can_adjust else 0.0,
+        )
+        plus_btn = ft.IconButton(
+            icon=ft.Icons.ADD_ROUNDED,
+            icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
+            icon_size=28,
+            on_click=lambda _: self._adjust_duration(5),
+            disabled=not can_adjust,
+            opacity=1.0 if can_adjust else 0.0,
+        )
+        ring_row = ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=12,
+            controls=[minus_btn, ring, plus_btn],
         )
 
         # Controls
@@ -156,7 +197,7 @@ class TimerView:
                 content=top_bar,
             ),
             ft.Container(expand=True),
-            ft.Container(alignment=ft.Alignment.CENTER, content=ring),
+            ft.Container(alignment=ft.Alignment.CENTER, content=ring_row),
             ft.Container(height=PADDING_XL),
             controls,
             ft.Container(height=12),
@@ -177,6 +218,7 @@ class TimerView:
     def build(self, page: ft.Page) -> ft.Container:
         """Build the timer view. Call this once to get the root control."""
         self._page = page
+        page.on_keyboard_event = self._on_keyboard
         self._container = ft.Container(
             expand=True,
             bgcolor=BG_COLOR,
