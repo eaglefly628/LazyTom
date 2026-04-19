@@ -10,8 +10,10 @@ from theme import (
     TOMATO_RED,
     TITLE_FONT_SIZE,
     BODY_FONT_SIZE,
+    CAPTION_FONT_SIZE,
     PADDING_LG,
     PADDING_XL,
+    SURFACE_COLOR,
 )
 from timer_engine import PomodoroTimer, TimerStatus
 from points_engine import PointsManager
@@ -19,6 +21,9 @@ from components.countdown_ring import create_countdown_ring
 from components.timer_controls import create_timer_controls
 from components.points_badge import create_points_badge
 import storage
+
+RENDER_FPS = 30
+TEST_DURATION_SECONDS = 10
 
 
 class TimerView:
@@ -31,39 +36,43 @@ class TimerView:
         self._is_ticking = False
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
+        self._seconds_since_tick = 0.0
 
-        # Load saved duration
         settings = storage.load_settings()
         duration = settings.get("focus_minutes", 25)
         self.timer.set_duration(duration)
 
-        # Wire up completion callback
         self.timer.on_complete = self._on_timer_complete
 
     def _on_timer_complete(self):
-        """Called when a Pomodoro session finishes."""
         self._is_ticking = False
-        self.points.award_for_pomodoro(self.timer.duration_minutes)
+        duration_min = self.timer.total_seconds / 60.0
+        self.points.award_for_pomodoro(max(1, round(duration_min)))
         storage.save_points(self.points.to_dict())
         if self.on_points_changed:
             self.on_points_changed()
         self._rebuild()
 
-    async def _tick_loop(self):
-        """Async tick loop running in Flet's event loop — safe for UI updates."""
+    async def _render_loop(self):
+        """Single loop: smooth ring animation at 30fps + 1-second ticks."""
+        interval = 1.0 / RENDER_FPS
+        self._seconds_since_tick = 0.0
         while self._is_ticking and self.timer.status == TimerStatus.RUNNING:
-            await asyncio.sleep(1)
-            if self._is_ticking and self.timer.status == TimerStatus.RUNNING:
+            await asyncio.sleep(interval)
+            if not self._is_ticking or self.timer.status != TimerStatus.RUNNING:
+                break
+            self._seconds_since_tick += interval
+            if self._seconds_since_tick >= 1.0:
+                self._seconds_since_tick -= 1.0
                 self.timer.tick()
-                self._rebuild()
+            self._rebuild_ring()
 
     def _start_tick_loop(self):
-        """Schedule the async tick loop on Flet's event loop."""
         if self._is_ticking:
             return
         self._is_ticking = True
         if self._page:
-            self._page.run_task(self._tick_loop)
+            self._page.run_task(self._render_loop)
 
     def _stop_tick_loop(self):
         self._is_ticking = False
@@ -78,13 +87,11 @@ class TimerView:
         self._rebuild()
 
     def _on_cancel(self, e):
-        """Cancel the current session — stop timer and go back to idle."""
         self._stop_tick_loop()
         self.timer.reset()
         self._rebuild()
 
     def _adjust_duration(self, delta: int):
-        """Adjust timer duration by delta minutes. Only when idle."""
         if self.timer.status == TimerStatus.IDLE:
             self.timer.adjust_duration(delta)
             storage.save_settings({
@@ -93,15 +100,25 @@ class TimerView:
             })
             self._rebuild()
 
+    def _set_test_duration(self, e):
+        """Set 10-second test duration."""
+        if self.timer.status == TimerStatus.IDLE:
+            self.timer.set_duration_seconds(TEST_DURATION_SECONDS)
+            self._rebuild()
+
     def _on_keyboard(self, e: ft.KeyboardEvent):
-        """Handle keyboard shortcuts — up/down arrows ±5 min."""
         if e.key == "Arrow Up":
             self._adjust_duration(5)
         elif e.key == "Arrow Down":
             self._adjust_duration(-5)
 
     def _rebuild(self):
-        """Rebuild and update the UI."""
+        if self._page and self._container:
+            self._container.content = self._build_content()
+            self._page.update()
+
+    def _rebuild_ring(self):
+        """Fast path: only update the ring and time text for smooth animation."""
         if self._page and self._container:
             self._container.content = self._build_content()
             self._page.update()
@@ -119,7 +136,6 @@ class TimerView:
         is_running = self.timer.status == TimerStatus.RUNNING
         is_idle = self.timer.status == TimerStatus.IDLE
 
-        # Top bar
         top_bar = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
@@ -133,19 +149,18 @@ class TimerView:
             ],
         )
 
-        # Countdown ring with ±5min buttons on left/right (only when idle)
         ring = create_countdown_ring(
             self.timer.formatted_time,
-            self.timer.progress,
+            self.timer.smooth_progress,
         )
 
-        can_adjust = self.timer.status == TimerStatus.IDLE
+        can_adjust = is_idle
         minus_btn = ft.IconButton(
             icon=ft.Icons.REMOVE_ROUNDED,
             icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
             icon_size=28,
             on_click=lambda _: self._adjust_duration(-5),
-            disabled=not can_adjust or self.timer.duration_minutes <= 5,
+            disabled=not can_adjust or self.timer.duration_minutes <= 1,
             opacity=1.0 if can_adjust else 0.0,
         )
         plus_btn = ft.IconButton(
@@ -163,7 +178,6 @@ class TimerView:
             controls=[minus_btn, ring, plus_btn],
         )
 
-        # Controls
         controls = create_timer_controls(
             is_running=is_running,
             is_idle=is_idle,
@@ -171,7 +185,6 @@ class TimerView:
             on_cancel=self._on_cancel,
         )
 
-        # Status text
         status = ft.Text(
             self._status_text(),
             size=BODY_FONT_SIZE,
@@ -179,12 +192,25 @@ class TimerView:
             text_align=ft.TextAlign.CENTER,
         )
 
-        # Completed bonus text
+        # Test button — small, only visible when idle
+        test_btn = ft.Container(
+            visible=is_idle,
+            on_click=self._set_test_duration,
+            border_radius=12,
+            bgcolor=SURFACE_COLOR,
+            padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+            content=ft.Text(
+                f"Test ({TEST_DURATION_SECONDS}s)",
+                size=CAPTION_FONT_SIZE,
+                color=TEXT_SECONDARY,
+            ),
+        )
+
         completed_text = None
         if self.timer.status == TimerStatus.COMPLETED:
-            points_earned = max(1, round(self.timer.duration_minutes * 0.4))
+            earned = max(1, round(self.timer.total_seconds / 60.0 * 0.4))
             completed_text = ft.Text(
-                f"+{points_earned} points!",
+                f"+{earned} points!",
                 size=TITLE_FONT_SIZE,
                 color=TOMATO_RED,
                 weight=ft.FontWeight.W_700,
@@ -208,6 +234,7 @@ class TimerView:
             content_controls.insert(-1, completed_text)
 
         content_controls.append(ft.Container(expand=True))
+        content_controls.append(test_btn)
 
         return ft.Column(
             expand=True,
@@ -216,7 +243,6 @@ class TimerView:
         )
 
     def build(self, page: ft.Page) -> ft.Container:
-        """Build the timer view. Call this once to get the root control."""
         self._page = page
         page.on_keyboard_event = self._on_keyboard
         self._container = ft.Container(
@@ -228,5 +254,4 @@ class TimerView:
         return self._container
 
     def dispose(self):
-        """Clean up resources."""
         self._stop_tick_loop()

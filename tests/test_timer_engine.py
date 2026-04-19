@@ -123,6 +123,72 @@ class TestProgress:
 
 
 # ════════════════════════════════════════════════════════════
+# smooth_progress property
+# ════════════════════════════════════════════════════════════
+
+class TestSmoothProgress:
+    def test_idle_equals_progress(self):
+        timer = PomodoroTimer(duration_minutes=1)
+        assert timer.smooth_progress == timer.progress == 1.0
+
+    def test_completed_equals_progress(self):
+        timer = PomodoroTimer(duration_minutes=1)
+        timer.start()
+        for _ in range(60):
+            timer.tick()
+        assert timer.smooth_progress == 0.0
+
+    def test_paused_equals_progress(self):
+        timer = PomodoroTimer(duration_minutes=1)
+        timer.start()
+        timer.tick()
+        timer.pause()
+        assert timer.smooth_progress == timer.progress
+
+    def test_running_uses_realtime(self):
+        import timer_engine
+        captured = [0.0]
+        original_clock = timer_engine._clock
+        timer_engine._clock = lambda: captured[0]
+        try:
+            timer = PomodoroTimer(duration_minutes=1)
+            captured[0] = 100.0
+            timer.start()
+            captured[0] = 100.5  # 0.5 seconds elapsed
+            sp = timer.smooth_progress
+            assert 0.99 < sp < 1.0  # slightly less than 1.0
+        finally:
+            timer_engine._clock = original_clock
+
+    def test_zero_total(self):
+        timer = PomodoroTimer(duration_minutes=0)
+        assert timer.smooth_progress == 0.0
+
+
+# ════════════════════════════════════════════════════════════
+# set_duration_seconds
+# ════════════════════════════════════════════════════════════
+
+class TestSetDurationSeconds:
+    def test_set_10_seconds(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.set_duration_seconds(10)
+        assert timer.total_seconds == 10
+        assert timer.remaining_seconds == 10
+
+    def test_rejected_when_running(self):
+        timer = PomodoroTimer(duration_minutes=25)
+        timer.start()
+        timer.set_duration_seconds(10)
+        assert timer.total_seconds == 1500
+
+    def test_formatted_time_shows_seconds(self):
+        timer = PomodoroTimer(duration_minutes=1)
+        timer.set_duration_seconds(10)
+        assert timer.formatted_time == "00:10"
+
+
+# ════════════════════════════════════════════════════════════
 # duration_minutes property
 # ════════════════════════════════════════════════════════════
 
@@ -195,15 +261,15 @@ class TestAdjustDuration:
         timer.adjust_duration(-5)
         assert timer.duration_minutes == 20
 
-    def test_minimum_5_minutes(self):
+    def test_minimum_1_minute(self):
         timer = PomodoroTimer(duration_minutes=10)
         timer.adjust_duration(-10)
-        assert timer.duration_minutes == 5
+        assert timer.duration_minutes == 1
 
-    def test_cannot_go_below_5(self):
-        timer = PomodoroTimer(duration_minutes=5)
+    def test_cannot_go_below_1(self):
+        timer = PomodoroTimer(duration_minutes=1)
         timer.adjust_duration(-5)
-        assert timer.duration_minutes == 5
+        assert timer.duration_minutes == 1
 
     def test_rejected_when_running(self):
         timer = PomodoroTimer(duration_minutes=25)
