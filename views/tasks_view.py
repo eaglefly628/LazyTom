@@ -1,4 +1,4 @@
-"""Tasks view — add tasks, set difficulty, sort, and pick what to work on."""
+"""Tasks view — inline input with templates, difficulty selector, and sorted task list."""
 
 import flet as ft
 
@@ -37,6 +37,19 @@ DIFFICULTY_COLORS = {
     Difficulty.VERY_HARD: "#F44336",
 }
 
+TEMPLATES = [
+    ("Math Homework", Difficulty.NORMAL),
+    ("Chinese Essay", Difficulty.HARD),
+    ("English Reading", Difficulty.EASY),
+    ("Science Lab Report", Difficulty.HARD),
+    ("History Notes", Difficulty.NORMAL),
+    ("PE Exercise", Difficulty.VERY_EASY),
+    ("Music Practice", Difficulty.EASY),
+    ("Art Project", Difficulty.NORMAL),
+    ("Exam Review", Difficulty.VERY_HARD),
+    ("Reading 30min", Difficulty.EASY),
+]
+
 
 class TasksView:
     def __init__(self, task_manager: TaskManager, on_task_selected=None):
@@ -44,6 +57,7 @@ class TasksView:
         self.on_task_selected = on_task_selected
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
+        self._selected_difficulty = Difficulty.NORMAL
 
     def _save(self):
         storage.save_tasks(self.tasks.to_dict())
@@ -53,71 +67,22 @@ class TasksView:
             self._container.content = self._build_content()
             self._page.update()
 
-    def _on_add_task(self, e):
-        name_field = ft.TextField(
-            label="Task name",
-            autofocus=True,
-            bgcolor=SURFACE_COLOR,
-            color=TEXT_PRIMARY,
-            label_style=ft.TextStyle(color=TEXT_SECONDARY),
-            border_color=DIVIDER_COLOR,
-            focused_border_color=TOMATO_RED,
-        )
+    def _on_add_task(self, name_field: ft.TextField):
+        name = name_field.value.strip() if name_field.value else ""
+        if name:
+            self.tasks.add_task(name, self._selected_difficulty)
+            self._save()
+            name_field.value = ""
+            self.rebuild()
 
-        difficulty_value = [Difficulty.NORMAL]
+    def _on_add_template(self, name: str, difficulty: Difficulty):
+        self.tasks.add_task(name, difficulty)
+        self._save()
+        self.rebuild()
 
-        def make_chip(diff: Difficulty):
-            is_sel = diff == difficulty_value[0]
-            return ft.Container(
-                bgcolor=DIFFICULTY_COLORS[diff] if is_sel else SURFACE_COLOR,
-                border_radius=16,
-                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-                on_click=lambda _, d=diff: _select_diff(d),
-                content=ft.Text(
-                    DIFFICULTY_LABELS[diff],
-                    size=CAPTION_FONT_SIZE,
-                    color=TEXT_PRIMARY if is_sel else TEXT_SECONDARY,
-                    weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
-                ),
-            )
-
-        def _select_diff(d):
-            difficulty_value[0] = d
-            diff_row.controls = [make_chip(diff) for diff in Difficulty]
-            self._page.update()
-
-        diff_row = ft.Row(
-            wrap=True,
-            spacing=6,
-            controls=[make_chip(diff) for diff in Difficulty],
-        )
-
-        def _submit(e):
-            name = name_field.value.strip()
-            if name:
-                self.tasks.add_task(name, difficulty_value[0])
-                self._save()
-                self._page.close(dlg)
-                self.rebuild()
-
-        dlg = ft.AlertDialog(
-            title=ft.Text("New Task", color=TEXT_PRIMARY),
-            bgcolor=BG_COLOR,
-            content=ft.Column(
-                tight=True,
-                spacing=16,
-                controls=[
-                    name_field,
-                    ft.Text("Difficulty", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
-                    diff_row,
-                ],
-            ),
-            actions=[
-                ft.TextButton("Cancel", on_click=lambda _: self._page.close(dlg)),
-                ft.TextButton("Add", on_click=_submit, style=ft.ButtonStyle(color=TOMATO_RED)),
-            ],
-        )
-        self._page.open(dlg)
+    def _on_select_difficulty(self, diff: Difficulty):
+        self._selected_difficulty = diff
+        self.rebuild()
 
     def _on_delete_task(self, task_id: str):
         self.tasks.remove_task(task_id)
@@ -183,12 +148,7 @@ class TasksView:
                 active_color=TOMATO_RED,
                 on_change=lambda _, tid=task.id: self._on_toggle_done(tid),
             ),
-            ft.Container(
-                bgcolor=diff_color,
-                border_radius=8,
-                width=4,
-                height=32,
-            ),
+            ft.Container(bgcolor=diff_color, border_radius=8, width=4, height=32),
             ft.Column(
                 spacing=2,
                 expand=True,
@@ -209,36 +169,26 @@ class TasksView:
         ]
 
         right_controls = []
-
         if is_manual and not task.done:
             if index > 0:
                 right_controls.append(ft.IconButton(
-                    icon=ft.Icons.ARROW_UPWARD,
-                    icon_color=TEXT_SECONDARY,
-                    icon_size=18,
+                    icon=ft.Icons.ARROW_UPWARD, icon_color=TEXT_SECONDARY, icon_size=18,
                     on_click=lambda _, tid=task.id: self._on_move_up(tid),
                 ))
             if index < total - 1:
                 right_controls.append(ft.IconButton(
-                    icon=ft.Icons.ARROW_DOWNWARD,
-                    icon_color=TEXT_SECONDARY,
-                    icon_size=18,
+                    icon=ft.Icons.ARROW_DOWNWARD, icon_color=TEXT_SECONDARY, icon_size=18,
                     on_click=lambda _, tid=task.id: self._on_move_down(tid),
                 ))
 
         if not task.done:
             right_controls.append(ft.IconButton(
-                icon=ft.Icons.PLAY_CIRCLE_OUTLINE,
-                icon_color=TOMATO_RED,
-                icon_size=24,
-                tooltip="Start this task",
+                icon=ft.Icons.PLAY_CIRCLE_OUTLINE, icon_color=TOMATO_RED, icon_size=24,
                 on_click=lambda _, t=task: self._on_select_task(t),
             ))
 
         right_controls.append(ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE,
-            icon_color=TEXT_SECONDARY,
-            icon_size=18,
+            icon=ft.Icons.DELETE_OUTLINE, icon_color=TEXT_SECONDARY, icon_size=18,
             on_click=lambda _, tid=task.id: self._on_delete_task(tid),
         ))
 
@@ -250,13 +200,98 @@ class TasksView:
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 controls=[
-                    ft.Row(
-                        expand=True,
-                        spacing=8,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        controls=left_controls,
-                    ),
+                    ft.Row(expand=True, spacing=8,
+                           vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                           controls=left_controls),
                     ft.Row(spacing=0, controls=right_controls),
+                ],
+            ),
+        )
+
+    def _build_input_area(self) -> ft.Container:
+        """Chat-style input area at the bottom: templates + difficulty + text field + add button."""
+
+        # Templates row
+        template_chips = []
+        for name, diff in TEMPLATES:
+            color = DIFFICULTY_COLORS[diff]
+            chip = ft.Container(
+                bgcolor=SURFACE_COLOR,
+                border=ft.border.all(1, color),
+                border_radius=16,
+                padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+                on_click=lambda _, n=name, d=diff: self._on_add_template(n, d),
+                content=ft.Text(name, size=CAPTION_FONT_SIZE - 1, color=color),
+            )
+            template_chips.append(chip)
+
+        templates_row = ft.Row(
+            wrap=True,
+            spacing=6,
+            run_spacing=6,
+            controls=template_chips,
+        )
+
+        # Difficulty selector
+        diff_chips = []
+        for diff in Difficulty:
+            is_sel = diff == self._selected_difficulty
+            color = DIFFICULTY_COLORS[diff]
+            chip = ft.Container(
+                bgcolor=color if is_sel else SURFACE_COLOR,
+                border_radius=12,
+                padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                on_click=lambda _, d=diff: self._on_select_difficulty(d),
+                content=ft.Text(
+                    DIFFICULTY_LABELS[diff],
+                    size=CAPTION_FONT_SIZE - 1,
+                    color=TEXT_PRIMARY if is_sel else TEXT_SECONDARY,
+                ),
+            )
+            diff_chips.append(chip)
+
+        diff_row = ft.Row(spacing=4, controls=diff_chips)
+
+        # Text field + add button
+        name_field = ft.TextField(
+            hint_text="Type a task...",
+            bgcolor=SURFACE_COLOR,
+            color=TEXT_PRIMARY,
+            hint_style=ft.TextStyle(color=TEXT_SECONDARY),
+            border_color=DIVIDER_COLOR,
+            focused_border_color=TOMATO_RED,
+            border_radius=12,
+            content_padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+            expand=True,
+            on_submit=lambda e: self._on_add_task(e.control),
+        )
+
+        add_btn = ft.IconButton(
+            icon=ft.Icons.SEND_ROUNDED,
+            icon_color=TOMATO_RED,
+            icon_size=28,
+            on_click=lambda _: self._on_add_task(name_field),
+        )
+
+        input_row = ft.Row(
+            spacing=8,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[name_field, add_btn],
+        )
+
+        return ft.Container(
+            bgcolor=BG_COLOR,
+            padding=ft.Padding.symmetric(horizontal=PADDING_LG, vertical=PADDING_SM),
+            border=ft.border.only(top=ft.BorderSide(1, DIVIDER_COLOR)),
+            content=ft.Column(
+                spacing=8,
+                tight=True,
+                controls=[
+                    ft.Text("Templates", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    templates_row,
+                    ft.Container(height=4),
+                    diff_row,
+                    input_row,
                 ],
             ),
         )
@@ -266,45 +301,30 @@ class TasksView:
         pending_count = self.tasks.pending_count()
         pending_total = sum(1 for t in sorted_tasks if not t.done)
 
-        # Header
         header = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
+                ft.Text("Tasks", size=TITLE_FONT_SIZE, color=TEXT_PRIMARY, weight=ft.FontWeight.W_700),
                 ft.Text(
-                    "Tasks",
-                    size=TITLE_FONT_SIZE,
-                    color=TEXT_PRIMARY,
-                    weight=ft.FontWeight.W_700,
-                ),
-                ft.IconButton(
-                    icon=ft.Icons.ADD_CIRCLE_OUTLINE,
-                    icon_color=TOMATO_RED,
-                    icon_size=28,
-                    on_click=self._on_add_task,
-                    tooltip="Add task",
+                    f"{pending_count} pending",
+                    size=CAPTION_FONT_SIZE,
+                    color=TEXT_SECONDARY,
                 ),
             ],
         )
 
-        # Sort selector
         sort_row = self._build_sort_selector()
 
-        # Task count
-        count_text = ft.Text(
-            f"{pending_count} task{'s' if pending_count != 1 else ''} pending",
-            size=CAPTION_FONT_SIZE,
-            color=TEXT_SECONDARY,
-        )
-
-        # Task list
         if not sorted_tasks:
             task_list = ft.Container(
                 padding=PADDING_XL,
-                content=ft.Text(
-                    "No tasks yet. Tap + to add one!",
-                    size=BODY_FONT_SIZE,
-                    color=TEXT_SECONDARY,
-                    text_align=ft.TextAlign.CENTER,
+                content=ft.Column(
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=8,
+                    controls=[
+                        ft.Text("No tasks yet", size=BODY_FONT_SIZE, color=TEXT_SECONDARY),
+                        ft.Text("Type below or pick a template", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    ],
                 ),
             )
         else:
@@ -318,29 +338,25 @@ class TasksView:
                     cards.append(self._build_task_card(task, 0, 0))
             task_list = ft.Column(spacing=8, controls=cards)
 
-        return ft.Column(
+        # Scrollable task list area
+        list_area = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
             controls=[
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
-                    content=header,
-                ),
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
-                    content=sort_row,
-                ),
+                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=header),
+                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=sort_row),
                 ft.Container(height=8),
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
-                    content=count_text,
-                ),
-                ft.Container(height=8),
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
-                    content=task_list,
-                ),
+                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=task_list),
             ],
+        )
+
+        # Bottom input area
+        input_area = self._build_input_area()
+
+        return ft.Column(
+            expand=True,
+            spacing=0,
+            controls=[list_area, input_area],
         )
 
     def build(self, page: ft.Page) -> ft.Container:
@@ -348,7 +364,7 @@ class TasksView:
         self._container = ft.Container(
             expand=True,
             bgcolor=BG_COLOR,
-            padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
+            padding=ft.Padding.only(top=PADDING_XL),
             content=self._build_content(),
         )
         return self._container

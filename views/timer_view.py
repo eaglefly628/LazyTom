@@ -202,19 +202,12 @@ class TimerView:
         )
 
         # Test button — small, only visible when idle
-        test_btn = ft.TextButton(
+        test_btn = ft.ElevatedButton(
             visible=is_idle,
             on_click=self._set_test_duration,
-            content=ft.Container(
-                border_radius=12,
-                bgcolor=SURFACE_COLOR,
-                padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-                content=ft.Text(
-                    f"Test ({TEST_DURATION_SECONDS}s)",
-                    size=CAPTION_FONT_SIZE,
-                    color=TEXT_SECONDARY,
-                ),
-            ),
+            bgcolor=SURFACE_COLOR,
+            color=TEXT_SECONDARY,
+            content=ft.Text(f"Test ({TEST_DURATION_SECONDS}s)", size=CAPTION_FONT_SIZE),
         )
 
         completed_text = None
