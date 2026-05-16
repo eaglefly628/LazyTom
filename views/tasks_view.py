@@ -91,6 +91,16 @@ class TasksView:
         self._selected_duration = minutes
         self.rebuild()
 
+    def _on_custom_duration(self, value: str):
+        """Handle custom duration input — accept any positive number."""
+        try:
+            mins = int(value.strip())
+            if mins > 0:
+                self._selected_duration = mins
+                self.rebuild()
+        except (ValueError, TypeError):
+            pass
+
     def _on_delete_task(self, task_id: str):
         self.tasks.remove_task(task_id)
         self._save()
@@ -269,7 +279,7 @@ class TasksView:
 
         diff_row = ft.Row(spacing=4, controls=diff_chips)
 
-        # Duration selector
+        # Duration selector: presets + custom input
         dur_chips = []
         for mins in DURATION_OPTIONS:
             is_sel = mins == self._selected_duration
@@ -285,7 +295,25 @@ class TasksView:
                 ),
             )
             dur_chips.append(chip)
-        dur_row = ft.Row(spacing=4, controls=dur_chips)
+
+        # Custom duration input
+        is_custom = self._selected_duration not in DURATION_OPTIONS
+        custom_field = ft.TextField(
+            value=str(self._selected_duration) if is_custom else "",
+            hint_text="Custom",
+            width=60,
+            height=28,
+            content_padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+            text_size=CAPTION_FONT_SIZE,
+            color=TEXT_PRIMARY,
+            hint_style=ft.TextStyle(color=TEXT_SECONDARY),
+            bgcolor=TOMATO_RED_DIM if is_custom else SURFACE_COLOR,
+            border_color=TOMATO_RED if is_custom else DIVIDER_COLOR,
+            border_radius=12,
+            on_submit=lambda e: self._on_custom_duration(e.control.value),
+        )
+        dur_chips.append(custom_field)
+        dur_row = ft.Row(spacing=4, vertical_alignment=ft.CrossAxisAlignment.CENTER, controls=dur_chips)
 
         # Text field + add button
         name_field = ft.TextField(
