@@ -8,6 +8,7 @@ import theme
 
 from points_engine import PointsManager
 from task_engine import TaskManager
+from mood_engine import MoodManager
 from views.timer_view import TimerView
 from views.points_view import PointsView
 from views.tasks_view import TasksView
@@ -41,6 +42,11 @@ def main(page: ft.Page):
     if saved_tasks:
         task_mgr.load_from_dict(saved_tasks)
 
+    mood_mgr = MoodManager()
+    saved_mood = storage.load_mood()
+    if saved_mood:
+        mood_mgr.load_from_dict(saved_mood)
+
     # ── Views ────────────────────────────────────────────
     def on_points_changed():
         points_view.rebuild()
@@ -67,9 +73,9 @@ def main(page: ft.Page):
         nav_bar.selected_index = 0
         page.update()
 
-    timer_view = TimerView(points, on_points_changed=on_points_changed)
+    timer_view = TimerView(points, mood_manager=mood_mgr, on_points_changed=on_points_changed)
     points_view = PointsView(points)
-    tasks_view = TasksView(task_mgr, on_task_selected=on_task_selected)
+    tasks_view = TasksView(task_mgr, mood_manager=mood_mgr, on_task_selected=on_task_selected)
     settings_view = SettingsView(
         on_settings_changed=on_settings_changed,
         on_theme_changed=on_theme_changed,

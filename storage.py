@@ -55,6 +55,18 @@ def save_settings(settings_data: dict):
     save_data(data)
 
 
+def load_mood() -> dict:
+    """Load mood section."""
+    return load_data().get("mood", {})
+
+
+def save_mood(mood_data: dict):
+    """Save mood section (merges with existing data)."""
+    data = load_data()
+    data["mood"] = mood_data
+    save_data(data)
+
+
 def load_tasks() -> dict:
     """Load tasks section."""
     return load_data().get("tasks", {})

@@ -16,6 +16,8 @@ from task_engine import (
     SORT_MODE_LABELS,
 )
 import storage
+from mood_engine import MoodManager, MoodLevel, MOOD_LABELS
+from components.mood_picker import show_mood_picker
 
 DIFFICULTY_COLORS = {
     Difficulty.VERY_EASY: "#4CAF50",
@@ -41,13 +43,16 @@ TEMPLATES = [
 DURATION_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60]
 
 class TasksView:
-    def __init__(self, task_manager: TaskManager, on_task_selected=None):
+    def __init__(self, task_manager: TaskManager, mood_manager: MoodManager | None = None, on_task_selected=None):
         self.tasks = task_manager
+        self.mood = mood_manager or MoodManager()
         self.on_task_selected = on_task_selected
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
         self._selected_difficulty = Difficulty.NORMAL
         self._selected_duration = 25
+        self._mood_sort_active = False
+        self._mood_sort_mood: MoodLevel | None = None
 
     def _save(self):
         storage.save_tasks(self.tasks.to_dict())
@@ -349,8 +354,31 @@ class TasksView:
             ),
         )
 
+    def _on_recommend_clicked(self, _=None):
+        if self._page is None:
+            return
+
+        def _on_mood(mood: MoodLevel):
+            self._mood_sort_active = True
+            self._mood_sort_mood = mood
+            self.mood.set_current_mood(mood)
+            storage.save_mood(self.mood.to_dict())
+            self.rebuild()
+
+        show_mood_picker(self._page, "现在感觉怎么样?", _on_mood)
+
+    def _on_clear_mood_sort(self, _=None):
+        self._mood_sort_active = False
+        self._mood_sort_mood = None
+        self.rebuild()
+
     def _build_content(self) -> ft.Column:
-        sorted_tasks = self.tasks.get_sorted_tasks()
+        if self._mood_sort_active and self._mood_sort_mood is not None:
+            recommended = self.mood.recommend_tasks(self.tasks.tasks, self._mood_sort_mood)
+            done_tasks = [t for t in self.tasks.tasks if t.done]
+            sorted_tasks = recommended + done_tasks
+        else:
+            sorted_tasks = self.tasks.get_sorted_tasks()
         pending_count = self.tasks.pending_count()
         pending_total = sum(1 for t in sorted_tasks if not t.done)
 
@@ -367,6 +395,53 @@ class TasksView:
         )
 
         sort_row = self._build_sort_selector()
+
+        # Recommend-for-me button
+        recommend_btn = ft.Container(
+            bgcolor=theme.TOMATO_RED_DIM,
+            border_radius=14,
+            padding=ft.Padding.symmetric(horizontal=PADDING_MD, vertical=PADDING_SM),
+            ink=True,
+            on_click=self._on_recommend_clicked,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=6,
+                controls=[
+                    ft.Text(
+                        "💭 Recommend for me",
+                        size=BODY_FONT_SIZE,
+                        color=theme.TEXT_PRIMARY,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+            ),
+        )
+
+        banner = None
+        if self._mood_sort_active and self._mood_sort_mood is not None:
+            banner = ft.Container(
+                bgcolor=theme.SURFACE_COLOR,
+                border_radius=10,
+                padding=ft.Padding.symmetric(horizontal=PADDING_SM, vertical=6),
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text(
+                            f"Sorted by your current mood: {MOOD_LABELS[self._mood_sort_mood]}",
+                            size=CAPTION_FONT_SIZE,
+                            color=theme.TEXT_SECONDARY,
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.CLOSE_ROUNDED,
+                            icon_color=theme.TEXT_SECONDARY,
+                            icon_size=16,
+                            on_click=self._on_clear_mood_sort,
+                            tooltip="Clear mood sort",
+                        ),
+                    ],
+                ),
+            )
 
         if not sorted_tasks:
             task_list = ft.Container(
@@ -392,15 +467,23 @@ class TasksView:
             task_list = ft.Column(spacing=8, controls=cards)
 
         # Scrollable task list area
+        list_controls = [
+            ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=header),
+            ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=recommend_btn),
+        ]
+        if banner is not None:
+            list_controls.append(
+                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=banner)
+            )
+        list_controls.extend([
+            ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=sort_row),
+            ft.Container(height=8),
+            ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=task_list),
+        ])
         list_area = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
-            controls=[
-                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=header),
-                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=sort_row),
-                ft.Container(height=8),
-                ft.Container(padding=ft.Padding.symmetric(horizontal=PADDING_LG), content=task_list),
-            ],
+            controls=list_controls,
         )
 
         # Bottom input area

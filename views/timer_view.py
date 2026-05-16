@@ -10,6 +10,8 @@ from points_engine import PointsManager
 from components.countdown_ring import create_countdown_ring
 from components.timer_controls import create_timer_controls
 from components.points_badge import create_points_badge
+from components.mood_picker import show_mood_picker
+from mood_engine import MoodManager, MoodLevel
 import storage
 
 RENDER_FPS = 30
@@ -18,15 +20,17 @@ TEST_DURATION_SECONDS = 10
 class TimerView:
     """Main timer screen with countdown ring, controls, and points badge."""
 
-    def __init__(self, points_manager: PointsManager, on_points_changed=None):
+    def __init__(self, points_manager: PointsManager, mood_manager: MoodManager | None = None, on_points_changed=None):
         self.timer = PomodoroTimer(duration_minutes=25)
         self.points = points_manager
+        self.mood = mood_manager or MoodManager()
         self.on_points_changed = on_points_changed
         self._is_ticking = False
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
         self._seconds_since_tick = 0.0
         self._current_task = None
+        self._current_mood_log = None
 
         settings = storage.load_settings()
         duration = settings.get("focus_minutes", 25)
@@ -42,6 +46,17 @@ class TimerView:
         if self.on_points_changed:
             self.on_points_changed()
         self._rebuild()
+        # Ask for mood-after, if a session was being tracked.
+        if self._current_mood_log is not None and self._page is not None:
+            log_entry = self._current_mood_log
+            self._current_mood_log = None
+
+            def _on_after(mood: MoodLevel):
+                self.mood.complete_session(log_entry, mood, completed=True)
+                self.mood.set_current_mood(mood)
+                storage.save_mood(self.mood.to_dict())
+
+            show_mood_picker(self._page, "完成后感觉如何?", _on_after)
 
     async def _render_loop(self):
         """Single loop: smooth ring animation at 30fps + 1-second ticks."""
@@ -68,14 +83,34 @@ class TimerView:
     def _stop_tick_loop(self):
         self._is_ticking = False
 
+    def _begin_session(self, mood_before: MoodLevel | None):
+        """Actually start the timer; log the session if we have a mood."""
+        if mood_before is not None:
+            self.mood.set_current_mood(mood_before)
+            task_id = self._current_task.id if self._current_task else None
+            self._current_mood_log = self.mood.start_session(task_id, mood_before)
+            storage.save_mood(self.mood.to_dict())
+        self.timer.start()
+        self._start_tick_loop()
+        self._rebuild()
+
     def _on_play_pause(self, e):
         if self.timer.status == TimerStatus.RUNNING:
             self.timer.pause()
             self._stop_tick_loop()
-        elif self.timer.status in (TimerStatus.IDLE, TimerStatus.COMPLETED, TimerStatus.PAUSED):
-            self.timer.start()
-            self._start_tick_loop()
-        self._rebuild()
+            self._rebuild()
+            return
+        if self.timer.status in (TimerStatus.IDLE, TimerStatus.COMPLETED, TimerStatus.PAUSED):
+            # Fresh start from idle/completed → check mood. Pause-resume skips picker.
+            from_paused = self.timer.status == TimerStatus.PAUSED
+            if not from_paused and self._page is not None and not self.mood.has_mood_today():
+                def _on_before(mood: MoodLevel):
+                    self._begin_session(mood)
+                show_mood_picker(self._page, "现在感觉怎么样?", _on_before)
+                return
+            # Use today's mood if known and not resuming a paused session.
+            mood_before = self.mood.current_mood if (not from_paused and self.mood.has_mood_today()) else None
+            self._begin_session(mood_before)
 
     def _on_cancel(self, e):
         self._stop_tick_loop()
