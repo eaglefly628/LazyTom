@@ -2,22 +2,10 @@
 
 import flet as ft
 
+import theme
 from theme import (
-    BG_COLOR,
-    SURFACE_COLOR,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TOMATO_RED,
-    TOMATO_RED_DIM,
-    TITLE_FONT_SIZE,
-    SUBTITLE_FONT_SIZE,
-    BODY_FONT_SIZE,
-    CAPTION_FONT_SIZE,
-    PADDING_SM,
-    PADDING_MD,
-    PADDING_LG,
-    PADDING_XL,
-    DIVIDER_COLOR,
+    TITLE_FONT_SIZE, SUBTITLE_FONT_SIZE, BODY_FONT_SIZE, CAPTION_FONT_SIZE,
+    PADDING_SM, PADDING_MD, PADDING_LG, PADDING_XL,
 )
 from task_engine import (
     TaskManager,
@@ -51,7 +39,6 @@ TEMPLATES = [
 ]
 
 DURATION_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60]
-
 
 class TasksView:
     def __init__(self, task_manager: TaskManager, on_task_selected=None):
@@ -141,14 +128,14 @@ class TasksView:
         for mode in SortMode:
             is_sel = mode == self.tasks.sort_mode
             chip = ft.Container(
-                bgcolor=TOMATO_RED if is_sel else SURFACE_COLOR,
+                bgcolor=theme.TOMATO_RED if is_sel else theme.SURFACE_COLOR,
                 border_radius=16,
                 padding=ft.Padding.symmetric(horizontal=12, vertical=6),
                 on_click=lambda _, m=mode: self._on_sort_mode_changed(m),
                 content=ft.Text(
                     SORT_MODE_LABELS[mode],
                     size=CAPTION_FONT_SIZE,
-                    color=TEXT_PRIMARY,
+                    color=theme.TEXT_PRIMARY,
                     weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
                 ),
             )
@@ -162,7 +149,7 @@ class TasksView:
         left_controls = [
             ft.Checkbox(
                 value=task.done,
-                active_color=TOMATO_RED,
+                active_color=theme.TOMATO_RED,
                 on_change=lambda _, tid=task.id: self._on_toggle_done(tid),
             ),
             ft.Container(bgcolor=diff_color, border_radius=8, width=4, height=32),
@@ -173,7 +160,7 @@ class TasksView:
                     ft.Text(
                         task.name,
                         size=BODY_FONT_SIZE,
-                        color=TEXT_SECONDARY if task.done else TEXT_PRIMARY,
+                        color=theme.TEXT_SECONDARY if task.done else theme.TEXT_PRIMARY,
                         style=ft.TextStyle(decoration=ft.TextDecoration.LINE_THROUGH) if task.done else None,
                     ),
                     ft.Row(
@@ -187,7 +174,7 @@ class TasksView:
                             ft.Text(
                                 f"{task.duration_minutes}min",
                                 size=CAPTION_FONT_SIZE,
-                                color=TEXT_SECONDARY,
+                                color=theme.TEXT_SECONDARY,
                             ),
                         ],
                     ),
@@ -199,28 +186,28 @@ class TasksView:
         if is_manual and not task.done:
             if index > 0:
                 right_controls.append(ft.IconButton(
-                    icon=ft.Icons.ARROW_UPWARD, icon_color=TEXT_SECONDARY, icon_size=18,
+                    icon=ft.Icons.ARROW_UPWARD, icon_color=theme.TEXT_SECONDARY, icon_size=18,
                     on_click=lambda _, tid=task.id: self._on_move_up(tid),
                 ))
             if index < total - 1:
                 right_controls.append(ft.IconButton(
-                    icon=ft.Icons.ARROW_DOWNWARD, icon_color=TEXT_SECONDARY, icon_size=18,
+                    icon=ft.Icons.ARROW_DOWNWARD, icon_color=theme.TEXT_SECONDARY, icon_size=18,
                     on_click=lambda _, tid=task.id: self._on_move_down(tid),
                 ))
 
         if not task.done:
             right_controls.append(ft.IconButton(
-                icon=ft.Icons.PLAY_CIRCLE_OUTLINE, icon_color=TOMATO_RED, icon_size=24,
+                icon=ft.Icons.PLAY_CIRCLE_OUTLINE, icon_color=theme.TOMATO_RED, icon_size=24,
                 on_click=lambda _, t=task: self._on_select_task(t),
             ))
 
         right_controls.append(ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE, icon_color=TEXT_SECONDARY, icon_size=18,
+            icon=ft.Icons.DELETE_OUTLINE, icon_color=theme.TEXT_SECONDARY, icon_size=18,
             on_click=lambda _, tid=task.id: self._on_delete_task(tid),
         ))
 
         return ft.Container(
-            bgcolor=SURFACE_COLOR,
+            bgcolor=theme.SURFACE_COLOR,
             border_radius=12,
             padding=ft.Padding.symmetric(horizontal=PADDING_SM, vertical=PADDING_SM),
             content=ft.Row(
@@ -243,7 +230,7 @@ class TasksView:
         for name, diff, dur in TEMPLATES:
             color = DIFFICULTY_COLORS[diff]
             chip = ft.Container(
-                bgcolor=SURFACE_COLOR,
+                bgcolor=theme.SURFACE_COLOR,
                 border=ft.border.all(1, color),
                 border_radius=16,
                 padding=ft.Padding.symmetric(horizontal=10, vertical=4),
@@ -265,14 +252,14 @@ class TasksView:
             is_sel = diff == self._selected_difficulty
             color = DIFFICULTY_COLORS[diff]
             chip = ft.Container(
-                bgcolor=color if is_sel else SURFACE_COLOR,
+                bgcolor=color if is_sel else theme.SURFACE_COLOR,
                 border_radius=12,
                 padding=ft.Padding.symmetric(horizontal=8, vertical=4),
                 on_click=lambda _, d=diff: self._on_select_difficulty(d),
                 content=ft.Text(
                     DIFFICULTY_LABELS[diff],
                     size=CAPTION_FONT_SIZE - 1,
-                    color=TEXT_PRIMARY if is_sel else TEXT_SECONDARY,
+                    color=theme.TEXT_PRIMARY if is_sel else theme.TEXT_SECONDARY,
                 ),
             )
             diff_chips.append(chip)
@@ -284,14 +271,14 @@ class TasksView:
         for mins in DURATION_OPTIONS:
             is_sel = mins == self._selected_duration
             chip = ft.Container(
-                bgcolor=TOMATO_RED if is_sel else SURFACE_COLOR,
+                bgcolor=theme.TOMATO_RED if is_sel else theme.SURFACE_COLOR,
                 border_radius=12,
                 padding=ft.Padding.symmetric(horizontal=8, vertical=4),
                 on_click=lambda _, m=mins: self._on_select_duration(m),
                 content=ft.Text(
                     f"{mins}m",
                     size=CAPTION_FONT_SIZE - 1,
-                    color=TEXT_PRIMARY if is_sel else TEXT_SECONDARY,
+                    color=theme.TEXT_PRIMARY if is_sel else theme.TEXT_SECONDARY,
                 ),
             )
             dur_chips.append(chip)
@@ -305,10 +292,10 @@ class TasksView:
             height=28,
             content_padding=ft.Padding.symmetric(horizontal=6, vertical=2),
             text_size=CAPTION_FONT_SIZE,
-            color=TEXT_PRIMARY,
-            hint_style=ft.TextStyle(color=TEXT_SECONDARY),
-            bgcolor=TOMATO_RED_DIM if is_custom else SURFACE_COLOR,
-            border_color=TOMATO_RED if is_custom else DIVIDER_COLOR,
+            color=theme.TEXT_PRIMARY,
+            hint_style=ft.TextStyle(color=theme.TEXT_SECONDARY),
+            bgcolor=theme.TOMATO_RED_DIM if is_custom else theme.SURFACE_COLOR,
+            border_color=theme.TOMATO_RED if is_custom else theme.DIVIDER_COLOR,
             border_radius=12,
             on_submit=lambda e: self._on_custom_duration(e.control.value),
         )
@@ -318,11 +305,11 @@ class TasksView:
         # Text field + add button
         name_field = ft.TextField(
             hint_text="Type a task...",
-            bgcolor=SURFACE_COLOR,
-            color=TEXT_PRIMARY,
-            hint_style=ft.TextStyle(color=TEXT_SECONDARY),
-            border_color=DIVIDER_COLOR,
-            focused_border_color=TOMATO_RED,
+            bgcolor=theme.SURFACE_COLOR,
+            color=theme.TEXT_PRIMARY,
+            hint_style=ft.TextStyle(color=theme.TEXT_SECONDARY),
+            border_color=theme.DIVIDER_COLOR,
+            focused_border_color=theme.TOMATO_RED,
             border_radius=12,
             content_padding=ft.Padding.symmetric(horizontal=12, vertical=10),
             expand=True,
@@ -331,7 +318,7 @@ class TasksView:
 
         add_btn = ft.IconButton(
             icon=ft.Icons.SEND_ROUNDED,
-            icon_color=TOMATO_RED,
+            icon_color=theme.TOMATO_RED,
             icon_size=28,
             on_click=lambda _: self._on_add_task(name_field),
         )
@@ -343,19 +330,19 @@ class TasksView:
         )
 
         return ft.Container(
-            bgcolor=BG_COLOR,
+            bgcolor=None,
             padding=ft.Padding.symmetric(horizontal=PADDING_LG, vertical=PADDING_SM),
-            border=ft.border.only(top=ft.BorderSide(1, DIVIDER_COLOR)),
+            border=ft.border.only(top=ft.BorderSide(1, theme.DIVIDER_COLOR)),
             content=ft.Column(
                 spacing=6,
                 tight=True,
                 controls=[
-                    ft.Text("Templates", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    ft.Text("Templates", size=CAPTION_FONT_SIZE, color=theme.TEXT_SECONDARY),
                     templates_row,
                     ft.Container(height=2),
-                    ft.Text("Difficulty", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    ft.Text("Difficulty", size=CAPTION_FONT_SIZE, color=theme.TEXT_SECONDARY),
                     diff_row,
-                    ft.Text("Duration", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    ft.Text("Duration", size=CAPTION_FONT_SIZE, color=theme.TEXT_SECONDARY),
                     dur_row,
                     input_row,
                 ],
@@ -370,11 +357,11 @@ class TasksView:
         header = ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
-                ft.Text("Tasks", size=TITLE_FONT_SIZE, color=TEXT_PRIMARY, weight=ft.FontWeight.W_700),
+                ft.Text("Tasks", size=TITLE_FONT_SIZE, color=theme.TEXT_PRIMARY, weight=ft.FontWeight.W_700),
                 ft.Text(
                     f"{pending_count} pending",
                     size=CAPTION_FONT_SIZE,
-                    color=TEXT_SECONDARY,
+                    color=theme.TEXT_SECONDARY,
                 ),
             ],
         )
@@ -388,8 +375,8 @@ class TasksView:
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=8,
                     controls=[
-                        ft.Text("No tasks yet", size=BODY_FONT_SIZE, color=TEXT_SECONDARY),
-                        ft.Text("Type below or pick a template", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                        ft.Text("No tasks yet", size=BODY_FONT_SIZE, color=theme.TEXT_SECONDARY),
+                        ft.Text("Type below or pick a template", size=CAPTION_FONT_SIZE, color=theme.TEXT_SECONDARY),
                     ],
                 ),
             )
@@ -429,7 +416,7 @@ class TasksView:
         self._page = page
         self._container = ft.Container(
             expand=True,
-            bgcolor=BG_COLOR,
+            bgcolor=None,
             padding=ft.Padding.only(top=PADDING_XL),
             content=self._build_content(),
         )

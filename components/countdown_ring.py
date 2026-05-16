@@ -4,15 +4,8 @@ import math
 import flet as ft
 import flet.canvas as cv
 
-from theme import (
-    TOMATO_RED,
-    TOMATO_RED_DIM,
-    TEXT_PRIMARY,
-    RING_SIZE,
-    RING_STROKE_WIDTH,
-    TIMER_FONT_SIZE,
-)
-
+import theme
+from theme import TIMER_FONT_SIZE, RING_SIZE, RING_STROKE_WIDTH
 
 def create_countdown_ring(formatted_time: str, progress: float) -> ft.Stack:
     """Build a countdown ring with the time displayed in the center.
@@ -36,7 +29,7 @@ def create_countdown_ring(formatted_time: str, progress: float) -> ft.Stack:
         paint=ft.Paint(
             stroke_width=stroke,
             style=ft.PaintingStyle.STROKE,
-            color=TOMATO_RED_DIM,
+            color=theme.TOMATO_RED_DIM,
         ),
     )
 
@@ -51,7 +44,7 @@ def create_countdown_ring(formatted_time: str, progress: float) -> ft.Stack:
         paint=ft.Paint(
             stroke_width=stroke,
             style=ft.PaintingStyle.STROKE,
-            color=TOMATO_RED,
+            color=theme.TOMATO_RED,
             stroke_cap=ft.StrokeCap.ROUND,
         ),
     )
@@ -66,7 +59,7 @@ def create_countdown_ring(formatted_time: str, progress: float) -> ft.Stack:
     time_text = ft.Text(
         formatted_time,
         size=TIMER_FONT_SIZE,
-        color=TEXT_PRIMARY,
+        color=theme.TEXT_PRIMARY,
         weight=ft.FontWeight.W_200,
         text_align=ft.TextAlign.CENTER,
     )

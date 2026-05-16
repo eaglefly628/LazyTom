@@ -1,34 +1,22 @@
 """Settings view — configure focus duration, break duration, and view points rules."""
 
 import flet as ft
+import theme
+from theme import BODY_FONT_SIZE, CAPTION_FONT_SIZE, PADDING_LG, PADDING_MD, PADDING_XL, SUBTITLE_FONT_SIZE, TITLE_FONT_SIZE
+from theme import ThemeName, THEME_DISPLAY_NAMES
 
-from theme import (
-    BG_COLOR,
-    SURFACE_COLOR,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TOMATO_RED,
-    TITLE_FONT_SIZE,
-    SUBTITLE_FONT_SIZE,
-    BODY_FONT_SIZE,
-    CAPTION_FONT_SIZE,
-    PADDING_MD,
-    PADDING_LG,
-    PADDING_XL,
-    DIVIDER_COLOR,
-)
 import storage
 
 # Available duration options
 FOCUS_OPTIONS = [15, 20, 25, 30, 45, 60]
 BREAK_OPTIONS = [5, 10, 15]
 
-
 class SettingsView:
     """Settings screen for configuring timer durations."""
 
-    def __init__(self, on_settings_changed=None):
+    def __init__(self, on_settings_changed=None, on_theme_changed=None):
         self.on_settings_changed = on_settings_changed
+        self.on_theme_changed = on_theme_changed
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
 
@@ -41,9 +29,17 @@ class SettingsView:
         storage.save_settings({
             "focus_minutes": self.focus_minutes,
             "break_minutes": self.break_minutes,
+            "theme": theme.current_theme_name.value,
         })
         if self.on_settings_changed:
             self.on_settings_changed()
+
+    def _on_theme_changed(self, name: ThemeName):
+        theme.set_theme(name)
+        self._save()
+        if self.on_theme_changed:
+            self.on_theme_changed()
+        self._rebuild()
 
     def _on_focus_changed(self, e):
         self.focus_minutes = int(e.control.value)
@@ -66,7 +62,7 @@ class SettingsView:
         for opt in options:
             is_selected = opt == selected
             chip = ft.Container(
-                bgcolor=TOMATO_RED if is_selected else SURFACE_COLOR,
+                bgcolor=theme.TOMATO_RED if is_selected else theme.SURFACE_COLOR,
                 border_radius=20,
                 padding=ft.Padding.symmetric(horizontal=16, vertical=8),
                 on_click=lambda e, v=opt: on_change(
@@ -75,7 +71,7 @@ class SettingsView:
                 content=ft.Text(
                     f"{opt} min",
                     size=BODY_FONT_SIZE,
-                    color=TEXT_PRIMARY,
+                    color=theme.TEXT_PRIMARY,
                     weight=ft.FontWeight.W_600 if is_selected else ft.FontWeight.W_400,
                 ),
             )
@@ -84,20 +80,46 @@ class SettingsView:
 
     def _build_section(self, title: str, subtitle: str, content: ft.Control) -> ft.Container:
         return ft.Container(
-            bgcolor=SURFACE_COLOR,
+            bgcolor=theme.SURFACE_COLOR,
             border_radius=16,
             padding=PADDING_LG,
             content=ft.Column(
                 spacing=12,
                 controls=[
-                    ft.Text(title, size=SUBTITLE_FONT_SIZE, color=TEXT_PRIMARY, weight=ft.FontWeight.W_600),
-                    ft.Text(subtitle, size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    ft.Text(title, size=SUBTITLE_FONT_SIZE, color=theme.TEXT_PRIMARY, weight=ft.FontWeight.W_600),
+                    ft.Text(subtitle, size=CAPTION_FONT_SIZE, color=theme.TEXT_SECONDARY),
                     content,
                 ],
             ),
         )
 
+    def _build_theme_chips(self) -> ft.Row:
+        chips = []
+        for name in ThemeName:
+            is_sel = name == theme.current_theme_name
+            chip = ft.Container(
+                bgcolor=theme.TOMATO_RED if is_sel else theme.SURFACE_COLOR,
+                border_radius=20,
+                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+                on_click=lambda _, n=name: self._on_theme_changed(n),
+                content=ft.Text(
+                    THEME_DISPLAY_NAMES[name],
+                    size=BODY_FONT_SIZE,
+                    color=theme.TEXT_PRIMARY,
+                    weight=ft.FontWeight.W_600 if is_sel else ft.FontWeight.W_400,
+                ),
+            )
+            chips.append(chip)
+        return ft.Row(wrap=True, spacing=8, controls=chips)
+
     def _build_content(self) -> ft.Column:
+        # Theme selector
+        theme_section = self._build_section(
+            "Theme",
+            "Choose a calming visual style",
+            self._build_theme_chips(),
+        )
+
         # Focus duration
         focus_section = self._build_section(
             "Focus Duration",
@@ -123,13 +145,13 @@ class SettingsView:
                     ft.Text(
                         f"Complete a {self.focus_minutes}-minute session = {points_per_session} points",
                         size=BODY_FONT_SIZE,
-                        color=TOMATO_RED,
+                        color=theme.TOMATO_RED,
                         weight=ft.FontWeight.W_600,
                     ),
                     ft.Text(
                         "0.4 points per minute of focus time",
                         size=CAPTION_FONT_SIZE,
-                        color=TEXT_SECONDARY,
+                        color=theme.TEXT_SECONDARY,
                     ),
                 ],
             ),
@@ -144,9 +166,14 @@ class SettingsView:
                     content=ft.Text(
                         "Settings",
                         size=TITLE_FONT_SIZE,
-                        color=TEXT_PRIMARY,
+                        color=theme.TEXT_PRIMARY,
                         weight=ft.FontWeight.W_700,
                     ),
+                ),
+                ft.Container(height=PADDING_MD),
+                ft.Container(
+                    padding=ft.Padding.symmetric(horizontal=PADDING_LG),
+                    content=theme_section,
                 ),
                 ft.Container(height=PADDING_MD),
                 ft.Container(
@@ -171,7 +198,7 @@ class SettingsView:
         self._page = page
         self._container = ft.Container(
             expand=True,
-            bgcolor=BG_COLOR,
+            bgcolor=None,
             padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )

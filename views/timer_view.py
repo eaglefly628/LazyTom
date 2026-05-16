@@ -2,19 +2,9 @@
 
 import asyncio
 import flet as ft
+import theme
+from theme import BODY_FONT_SIZE, CAPTION_FONT_SIZE, PADDING_LG, PADDING_XL, TITLE_FONT_SIZE
 
-from theme import (
-    BG_COLOR,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TOMATO_RED,
-    TITLE_FONT_SIZE,
-    BODY_FONT_SIZE,
-    CAPTION_FONT_SIZE,
-    PADDING_LG,
-    PADDING_XL,
-    SURFACE_COLOR,
-)
 from timer_engine import PomodoroTimer, TimerStatus
 from points_engine import PointsManager
 from components.countdown_ring import create_countdown_ring
@@ -24,7 +14,6 @@ import storage
 
 RENDER_FPS = 30
 TEST_DURATION_SECONDS = 10
-
 
 class TimerView:
     """Main timer screen with countdown ring, controls, and points badge."""
@@ -153,7 +142,7 @@ class TimerView:
                 ft.Text(
                     "LazyTom",
                     size=TITLE_FONT_SIZE,
-                    color=TEXT_PRIMARY,
+                    color=theme.TEXT_PRIMARY,
                     weight=ft.FontWeight.W_700,
                 ),
                 create_points_badge(self.points.balance),
@@ -168,7 +157,7 @@ class TimerView:
         can_adjust = is_idle
         minus_btn = ft.IconButton(
             icon=ft.Icons.REMOVE_ROUNDED,
-            icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
+            icon_color=theme.TEXT_PRIMARY if can_adjust else theme.TEXT_SECONDARY,
             icon_size=28,
             on_click=lambda _: self._adjust_duration(-5),
             disabled=not can_adjust or self.timer.total_seconds <= 60,
@@ -176,7 +165,7 @@ class TimerView:
         )
         plus_btn = ft.IconButton(
             icon=ft.Icons.ADD_ROUNDED,
-            icon_color=TEXT_PRIMARY if can_adjust else TEXT_SECONDARY,
+            icon_color=theme.TEXT_PRIMARY if can_adjust else theme.TEXT_SECONDARY,
             icon_size=28,
             on_click=lambda _: self._adjust_duration(5),
             disabled=not can_adjust,
@@ -199,7 +188,7 @@ class TimerView:
         status = ft.Text(
             self._status_text(),
             size=BODY_FONT_SIZE,
-            color=TOMATO_RED if self.timer.status == TimerStatus.COMPLETED else TEXT_SECONDARY,
+            color=theme.TOMATO_RED if self.timer.status == TimerStatus.COMPLETED else theme.TEXT_SECONDARY,
             text_align=ft.TextAlign.CENTER,
         )
 
@@ -209,7 +198,7 @@ class TimerView:
             completed_text = ft.Text(
                 f"+{earned} points!",
                 size=TITLE_FONT_SIZE,
-                color=TOMATO_RED,
+                color=theme.TOMATO_RED,
                 weight=ft.FontWeight.W_700,
                 text_align=ft.TextAlign.CENTER,
             )
@@ -236,7 +225,7 @@ class TimerView:
             content_controls.append(
                 ft.IconButton(
                     icon=ft.Icons.BUG_REPORT_OUTLINED,
-                    icon_color=TEXT_SECONDARY,
+                    icon_color=theme.TEXT_SECONDARY,
                     icon_size=20,
                     tooltip=f"Test ({TEST_DURATION_SECONDS}s)",
                     on_click=self._set_test_duration,
@@ -256,7 +245,7 @@ class TimerView:
         page.on_keyboard_event = self._on_keyboard
         self._container = ft.Container(
             expand=True,
-            bgcolor=BG_COLOR,
+            bgcolor=None,
             padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )

@@ -1,9 +1,8 @@
 """Timer control buttons — play/pause and cancel."""
 
 import flet as ft
-
-from theme import TEXT_PRIMARY, TEXT_SECONDARY, TOMATO_RED, PADDING_MD
-
+import theme
+from theme import PADDING_MD
 
 def create_timer_controls(
     is_running: bool,
@@ -23,12 +22,12 @@ def create_timer_controls(
     play_pause_icon = ft.Icons.PAUSE_ROUNDED if is_running else ft.Icons.PLAY_ARROW_ROUNDED
     play_pause_btn = ft.IconButton(
         icon=play_pause_icon,
-        icon_color=TEXT_PRIMARY,
+        icon_color=theme.TEXT_PRIMARY,
         icon_size=48,
         on_click=on_play_pause,
         style=ft.ButtonStyle(
             shape=ft.CircleBorder(),
-            bgcolor=TOMATO_RED,
+            bgcolor=theme.TOMATO_RED,
             padding=PADDING_MD,
         ),
     )
@@ -36,7 +35,7 @@ def create_timer_controls(
     # Cancel button — stop current session, only visible when timer is active
     cancel_btn = ft.IconButton(
         icon=ft.Icons.CLOSE_ROUNDED,
-        icon_color=TEXT_SECONDARY if is_idle else TEXT_PRIMARY,
+        icon_color=theme.TEXT_SECONDARY if is_idle else theme.TEXT_PRIMARY,
         icon_size=28,
         on_click=on_cancel,
         disabled=is_idle,

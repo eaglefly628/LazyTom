@@ -23,7 +23,7 @@ THEME_DISPLAY_NAMES = {
 
 
 class ThemeColors:
-    def __init__(self, bg, surface, text_primary, text_secondary, accent, accent_dim, divider, ring_track):
+    def __init__(self, bg, surface, text_primary, text_secondary, accent, accent_dim, divider, ring_track, bg_image=None):
         self.bg = bg
         self.surface = surface
         self.text_primary = text_primary
@@ -32,42 +32,50 @@ class ThemeColors:
         self.accent_dim = accent_dim
         self.divider = divider
         self.ring_track = ring_track
+        self.bg_image = bg_image  # path to background image, optional
 
+
+# For semi-transparent surface cards over the background image we use
+# the surface color (white/dark) with 80% opacity. The bg_image is rendered
+# beneath everything via main.py.
 
 # ── Lakeside: soft blue-green, warm lake with butterflies & flowers ────
 _LAKESIDE = ThemeColors(
     bg="#E8F4F0",
-    surface="#FFFFFF",
+    surface="#FFFFFFE6",  # white 90% opacity
     text_primary="#2D3B36",
     text_secondary="#7A918A",
     accent="#4DACB0",
     accent_dim="#B8DFE0",
     divider="#C8DDD8",
     ring_track="#D4EBE4",
+    bg_image="assets/backgrounds/lakeside.jpg",
 )
 
 # ── Meadow: fresh green, warm sunshine on grass ────────────────────────
 _MEADOW = ThemeColors(
     bg="#F0F7E8",
-    surface="#FFFFFF",
+    surface="#FFFFFFE6",
     text_primary="#2E3A28",
     text_secondary="#7A9170",
     accent="#6BBF59",
     accent_dim="#C2E8B8",
     divider="#D0DFC8",
     ring_track="#E2F0D4",
+    bg_image="assets/backgrounds/meadow.jpg",
 )
 
 # ── Starry Night: deep blue-purple, calm and peaceful ─────────────────
 _STARRY = ThemeColors(
     bg="#1A1B2E",
-    surface="#2A2D4A",
+    surface="#2A2D4AE6",
     text_primary="#E8E8F0",
     text_secondary="#8888AA",
     accent="#7B8CDE",
     accent_dim="#3D4478",
     divider="#3A3D5A",
     ring_track="#252847",
+    bg_image="assets/backgrounds/starry.jpg",
 )
 
 THEMES = {
@@ -89,13 +97,14 @@ TOMATO_RED = _LAKESIDE.accent
 TOMATO_RED_DIM = _LAKESIDE.accent_dim
 DIVIDER_COLOR = _LAKESIDE.divider
 RING_TRACK_COLOR = _LAKESIDE.ring_track
+BG_IMAGE = _LAKESIDE.bg_image
 
 
 def set_theme(name: ThemeName):
     """Switch all color variables to the new theme."""
     global BG_COLOR, SURFACE_COLOR, TEXT_PRIMARY, TEXT_SECONDARY
     global TOMATO_RED, TOMATO_RED_DIM, DIVIDER_COLOR, RING_TRACK_COLOR
-    global current_theme_name
+    global BG_IMAGE, current_theme_name
 
     current_theme_name = name
     t = THEMES[name]
@@ -107,6 +116,7 @@ def set_theme(name: ThemeName):
     TOMATO_RED_DIM = t.accent_dim
     DIVIDER_COLOR = t.divider
     RING_TRACK_COLOR = t.ring_track
+    BG_IMAGE = t.bg_image
 
 
 # ── Font sizes (theme-independent) ────────────────────────────────────

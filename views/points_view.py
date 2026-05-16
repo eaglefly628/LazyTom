@@ -1,23 +1,10 @@
 """Points view — shows balance and transaction history."""
 
 import flet as ft
+import theme
+from theme import BODY_FONT_SIZE, CAPTION_FONT_SIZE, PADDING_LG, PADDING_MD, PADDING_XL, SUBTITLE_FONT_SIZE, TITLE_FONT_SIZE
 
-from theme import (
-    BG_COLOR,
-    SURFACE_COLOR,
-    TEXT_PRIMARY,
-    TEXT_SECONDARY,
-    TOMATO_RED,
-    TITLE_FONT_SIZE,
-    SUBTITLE_FONT_SIZE,
-    BODY_FONT_SIZE,
-    CAPTION_FONT_SIZE,
-    PADDING_MD,
-    PADDING_LG,
-    PADDING_XL,
-)
 from points_engine import PointsManager
-
 
 class PointsView:
     """Points history screen showing balance and all transactions."""
@@ -36,7 +23,7 @@ class PointsView:
     def _build_content(self) -> ft.Column:
         # Balance card
         balance_card = ft.Container(
-            bgcolor=SURFACE_COLOR,
+            bgcolor=theme.SURFACE_COLOR,
             border_radius=16,
             padding=PADDING_LG,
             content=ft.Column(
@@ -46,17 +33,17 @@ class PointsView:
                     ft.Text(
                         "Total Points",
                         size=BODY_FONT_SIZE,
-                        color=TEXT_SECONDARY,
+                        color=theme.TEXT_SECONDARY,
                     ),
                     ft.Row(
                         alignment=ft.MainAxisAlignment.CENTER,
                         spacing=8,
                         controls=[
-                            ft.Icon(ft.Icons.LOCAL_FIRE_DEPARTMENT, color=TOMATO_RED, size=32),
+                            ft.Icon(ft.Icons.LOCAL_FIRE_DEPARTMENT, color=theme.TOMATO_RED, size=32),
                             ft.Text(
                                 str(self.points.balance),
                                 size=48,
-                                color=TEXT_PRIMARY,
+                                color=theme.TEXT_PRIMARY,
                                 weight=ft.FontWeight.W_700,
                             ),
                         ],
@@ -69,7 +56,7 @@ class PointsView:
         history_header = ft.Text(
             "History",
             size=SUBTITLE_FONT_SIZE,
-            color=TEXT_PRIMARY,
+            color=theme.TEXT_PRIMARY,
             weight=ft.FontWeight.W_600,
         )
 
@@ -81,7 +68,7 @@ class PointsView:
                 content=ft.Text(
                     "No points yet. Complete a focus session to earn points!",
                     size=BODY_FONT_SIZE,
-                    color=TEXT_SECONDARY,
+                    color=theme.TEXT_SECONDARY,
                     text_align=ft.TextAlign.CENTER,
                 ),
             )
@@ -91,7 +78,7 @@ class PointsView:
                 # Parse timestamp for display
                 time_display = txn.timestamp[:16].replace("T", " ") if txn.timestamp else ""
                 item = ft.Container(
-                    bgcolor=SURFACE_COLOR,
+                    bgcolor=theme.SURFACE_COLOR,
                     border_radius=12,
                     padding=PADDING_MD,
                     content=ft.Row(
@@ -103,19 +90,19 @@ class PointsView:
                                     ft.Text(
                                         txn.reason,
                                         size=BODY_FONT_SIZE,
-                                        color=TEXT_PRIMARY,
+                                        color=theme.TEXT_PRIMARY,
                                     ),
                                     ft.Text(
                                         time_display,
                                         size=CAPTION_FONT_SIZE,
-                                        color=TEXT_SECONDARY,
+                                        color=theme.TEXT_SECONDARY,
                                     ),
                                 ],
                             ),
                             ft.Text(
                                 f"+{txn.amount}",
                                 size=SUBTITLE_FONT_SIZE,
-                                color=TOMATO_RED,
+                                color=theme.TOMATO_RED,
                                 weight=ft.FontWeight.W_700,
                             ),
                         ],
@@ -134,7 +121,7 @@ class PointsView:
                     content=ft.Text(
                         "Points",
                         size=TITLE_FONT_SIZE,
-                        color=TEXT_PRIMARY,
+                        color=theme.TEXT_PRIMARY,
                         weight=ft.FontWeight.W_700,
                     ),
                 ),
@@ -161,7 +148,7 @@ class PointsView:
         self._page = page
         self._container = ft.Container(
             expand=True,
-            bgcolor=BG_COLOR,
+            bgcolor=None,
             padding=ft.Padding.only(top=PADDING_XL, bottom=PADDING_LG),
             content=self._build_content(),
         )

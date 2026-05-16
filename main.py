@@ -4,8 +4,8 @@ Run with: flet run main.py
 """
 
 import flet as ft
+import theme
 
-from theme import BG_COLOR, TEXT_PRIMARY, TEXT_SECONDARY, TOMATO_RED
 from points_engine import PointsManager
 from task_engine import TaskManager
 from views.timer_view import TimerView
@@ -14,12 +14,19 @@ from views.tasks_view import TasksView
 from views.settings_view import SettingsView
 import storage
 
-
 def main(page: ft.Page):
+    # Load saved theme before any UI is built
+    saved_settings = storage.load_settings()
+    saved_theme = saved_settings.get("theme")
+    if saved_theme:
+        try:
+            theme.set_theme(theme.ThemeName(saved_theme))
+        except ValueError:
+            pass
+
     page.title = "LazyTom"
-    page.bgcolor = BG_COLOR
+    page.bgcolor = theme.BG_COLOR
     page.padding = 0
-    page.theme_mode = ft.ThemeMode.DARK
     page.window.width = 400
     page.window.height = 720
 
@@ -43,6 +50,17 @@ def main(page: ft.Page):
         timer_view.timer.set_duration(settings.get("focus_minutes", 25))
         timer_view._rebuild()
 
+    def on_theme_changed():
+        # Rebuild everything when theme switches
+        page.bgcolor = theme.BG_COLOR
+        bg_image.src = theme.BG_IMAGE
+        nav_bar.bgcolor = theme.BG_COLOR
+        nav_bar.indicator_color = theme.TOMATO_RED
+        timer_view._rebuild()
+        points_view.rebuild()
+        tasks_view.rebuild()
+        page.update()
+
     def on_task_selected(task):
         timer_view.set_current_task(task)
         switch_tab(0)
@@ -52,7 +70,10 @@ def main(page: ft.Page):
     timer_view = TimerView(points, on_points_changed=on_points_changed)
     points_view = PointsView(points)
     tasks_view = TasksView(task_mgr, on_task_selected=on_task_selected)
-    settings_view = SettingsView(on_settings_changed=on_settings_changed)
+    settings_view = SettingsView(
+        on_settings_changed=on_settings_changed,
+        on_theme_changed=on_theme_changed,
+    )
 
     # Build view controls
     timer_control = timer_view.build(page)
@@ -60,12 +81,26 @@ def main(page: ft.Page):
     tasks_control = tasks_view.build(page)
     settings_control = settings_view.build(page)
 
-    # ── Content area ─────────────────────────────────────
-    content = ft.Container(expand=True, content=timer_control)
+    # ── Content area with theme background image ────────
+    bg_image = ft.Image(
+        src=theme.BG_IMAGE,
+        fit=ft.ImageFit.COVER,
+        expand=True,
+    )
+    bg_overlay = ft.Container(
+        expand=True,
+        bgcolor="#00000040",  # subtle dark overlay for readability
+    )
+    content_inner = ft.Container(expand=True, content=timer_control)
+
+    content = ft.Stack(
+        expand=True,
+        controls=[bg_image, bg_overlay, content_inner],
+    )
 
     def switch_tab(index: int):
         views = [timer_control, points_control, tasks_control, settings_control]
-        content.content = views[index]
+        content_inner.content = views[index]
         if index == 1:
             points_view.rebuild()
         if index == 2:
@@ -74,8 +109,8 @@ def main(page: ft.Page):
 
     # ── Bottom navigation ────────────────────────────────
     nav_bar = ft.NavigationBar(
-        bgcolor=BG_COLOR,
-        indicator_color=TOMATO_RED,
+        bgcolor=theme.BG_COLOR,
+        indicator_color=theme.TOMATO_RED,
         selected_index=0,
         on_change=lambda e: switch_tab(e.control.selected_index),
         destinations=[
@@ -103,7 +138,6 @@ def main(page: ft.Page):
     )
 
     page.add(content, nav_bar)
-
 
 if __name__ == "__main__":
     ft.app(target=main)
