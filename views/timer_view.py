@@ -109,8 +109,10 @@ class TimerView:
             self._rebuild()
 
     def set_current_task(self, task):
-        """Set the task to work on. Shows task name on timer screen."""
+        """Set the task to work on. Syncs task name and duration to timer."""
         self._current_task = task
+        if self.timer.status == TimerStatus.IDLE:
+            self.timer.set_duration(task.duration_minutes)
         self._rebuild()
 
     def _on_keyboard(self, e: ft.KeyboardEvent):
@@ -131,7 +133,7 @@ class TimerView:
             self._page.update()
 
     def _status_text(self) -> str:
-        if self._current_task and self.timer.status in (TimerStatus.RUNNING, TimerStatus.PAUSED):
+        if self._current_task and self.timer.status in (TimerStatus.IDLE, TimerStatus.RUNNING, TimerStatus.PAUSED):
             return self._current_task.name
         status_map = {
             TimerStatus.IDLE: "Ready to focus",

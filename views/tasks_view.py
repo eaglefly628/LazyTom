@@ -38,17 +38,19 @@ DIFFICULTY_COLORS = {
 }
 
 TEMPLATES = [
-    ("Math Homework", Difficulty.NORMAL),
-    ("Chinese Essay", Difficulty.HARD),
-    ("English Reading", Difficulty.EASY),
-    ("Science Lab Report", Difficulty.HARD),
-    ("History Notes", Difficulty.NORMAL),
-    ("PE Exercise", Difficulty.VERY_EASY),
-    ("Music Practice", Difficulty.EASY),
-    ("Art Project", Difficulty.NORMAL),
-    ("Exam Review", Difficulty.VERY_HARD),
-    ("Reading 30min", Difficulty.EASY),
+    ("Math Homework", Difficulty.NORMAL, 25),
+    ("Chinese Essay", Difficulty.HARD, 45),
+    ("English Reading", Difficulty.EASY, 20),
+    ("Science Lab Report", Difficulty.HARD, 30),
+    ("History Notes", Difficulty.NORMAL, 25),
+    ("PE Exercise", Difficulty.VERY_EASY, 15),
+    ("Music Practice", Difficulty.EASY, 20),
+    ("Art Project", Difficulty.NORMAL, 30),
+    ("Exam Review", Difficulty.VERY_HARD, 45),
+    ("Reading 30min", Difficulty.EASY, 30),
 ]
+
+DURATION_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 60]
 
 
 class TasksView:
@@ -58,6 +60,7 @@ class TasksView:
         self._page: ft.Page | None = None
         self._container: ft.Container | None = None
         self._selected_difficulty = Difficulty.NORMAL
+        self._selected_duration = 25
 
     def _save(self):
         storage.save_tasks(self.tasks.to_dict())
@@ -70,18 +73,22 @@ class TasksView:
     def _on_add_task(self, name_field: ft.TextField):
         name = name_field.value.strip() if name_field.value else ""
         if name:
-            self.tasks.add_task(name, self._selected_difficulty)
+            self.tasks.add_task(name, self._selected_difficulty, self._selected_duration)
             self._save()
             name_field.value = ""
             self.rebuild()
 
-    def _on_add_template(self, name: str, difficulty: Difficulty):
-        self.tasks.add_task(name, difficulty)
+    def _on_add_template(self, name: str, difficulty: Difficulty, duration: int):
+        self.tasks.add_task(name, difficulty, duration)
         self._save()
         self.rebuild()
 
     def _on_select_difficulty(self, diff: Difficulty):
         self._selected_difficulty = diff
+        self.rebuild()
+
+    def _on_select_duration(self, minutes: int):
+        self._selected_duration = minutes
         self.rebuild()
 
     def _on_delete_task(self, task_id: str):
@@ -159,10 +166,20 @@ class TasksView:
                         color=TEXT_SECONDARY if task.done else TEXT_PRIMARY,
                         style=ft.TextStyle(decoration=ft.TextDecoration.LINE_THROUGH) if task.done else None,
                     ),
-                    ft.Text(
-                        DIFFICULTY_LABELS[task.difficulty],
-                        size=CAPTION_FONT_SIZE,
-                        color=diff_color,
+                    ft.Row(
+                        spacing=8,
+                        controls=[
+                            ft.Text(
+                                DIFFICULTY_LABELS[task.difficulty],
+                                size=CAPTION_FONT_SIZE,
+                                color=diff_color,
+                            ),
+                            ft.Text(
+                                f"{task.duration_minutes}min",
+                                size=CAPTION_FONT_SIZE,
+                                color=TEXT_SECONDARY,
+                            ),
+                        ],
                     ),
                 ],
             ),
@@ -213,15 +230,15 @@ class TasksView:
 
         # Templates row
         template_chips = []
-        for name, diff in TEMPLATES:
+        for name, diff, dur in TEMPLATES:
             color = DIFFICULTY_COLORS[diff]
             chip = ft.Container(
                 bgcolor=SURFACE_COLOR,
                 border=ft.border.all(1, color),
                 border_radius=16,
                 padding=ft.Padding.symmetric(horizontal=10, vertical=4),
-                on_click=lambda _, n=name, d=diff: self._on_add_template(n, d),
-                content=ft.Text(name, size=CAPTION_FONT_SIZE - 1, color=color),
+                on_click=lambda _, n=name, d=diff, du=dur: self._on_add_template(n, d, du),
+                content=ft.Text(f"{name} ({dur}m)", size=CAPTION_FONT_SIZE - 1, color=color),
             )
             template_chips.append(chip)
 
@@ -251,6 +268,24 @@ class TasksView:
             diff_chips.append(chip)
 
         diff_row = ft.Row(spacing=4, controls=diff_chips)
+
+        # Duration selector
+        dur_chips = []
+        for mins in DURATION_OPTIONS:
+            is_sel = mins == self._selected_duration
+            chip = ft.Container(
+                bgcolor=TOMATO_RED if is_sel else SURFACE_COLOR,
+                border_radius=12,
+                padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                on_click=lambda _, m=mins: self._on_select_duration(m),
+                content=ft.Text(
+                    f"{mins}m",
+                    size=CAPTION_FONT_SIZE - 1,
+                    color=TEXT_PRIMARY if is_sel else TEXT_SECONDARY,
+                ),
+            )
+            dur_chips.append(chip)
+        dur_row = ft.Row(spacing=4, controls=dur_chips)
 
         # Text field + add button
         name_field = ft.TextField(
@@ -284,13 +319,16 @@ class TasksView:
             padding=ft.Padding.symmetric(horizontal=PADDING_LG, vertical=PADDING_SM),
             border=ft.border.only(top=ft.BorderSide(1, DIVIDER_COLOR)),
             content=ft.Column(
-                spacing=8,
+                spacing=6,
                 tight=True,
                 controls=[
                     ft.Text("Templates", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
                     templates_row,
-                    ft.Container(height=4),
+                    ft.Container(height=2),
+                    ft.Text("Difficulty", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
                     diff_row,
+                    ft.Text("Duration", size=CAPTION_FONT_SIZE, color=TEXT_SECONDARY),
+                    dur_row,
                     input_row,
                 ],
             ),

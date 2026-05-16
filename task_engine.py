@@ -40,6 +40,7 @@ class Task:
         self,
         name: str,
         difficulty: Difficulty = Difficulty.NORMAL,
+        duration_minutes: int = 25,
         task_id: str | None = None,
         done: bool = False,
         order: int = 0,
@@ -48,6 +49,7 @@ class Task:
         self.id = task_id or uuid.uuid4().hex[:8]
         self.name = name
         self.difficulty = difficulty
+        self.duration_minutes = duration_minutes
         self.done = done
         self.order = order
         self.created_at = created_at or datetime.now().isoformat()
@@ -57,6 +59,7 @@ class Task:
             "id": self.id,
             "name": self.name,
             "difficulty": int(self.difficulty),
+            "duration_minutes": self.duration_minutes,
             "done": self.done,
             "order": self.order,
             "created_at": self.created_at,
@@ -67,6 +70,7 @@ class Task:
         return cls(
             name=data["name"],
             difficulty=Difficulty(data.get("difficulty", 3)),
+            duration_minutes=data.get("duration_minutes", 25),
             task_id=data.get("id"),
             done=data.get("done", False),
             order=data.get("order", 0),
@@ -79,8 +83,8 @@ class TaskManager:
         self.tasks: list[Task] = []
         self.sort_mode: SortMode = SortMode.EASY_FIRST
 
-    def add_task(self, name: str, difficulty: Difficulty = Difficulty.NORMAL) -> Task:
-        task = Task(name=name, difficulty=difficulty, order=len(self.tasks))
+    def add_task(self, name: str, difficulty: Difficulty = Difficulty.NORMAL, duration_minutes: int = 25) -> Task:
+        task = Task(name=name, difficulty=difficulty, duration_minutes=duration_minutes, order=len(self.tasks))
         self.tasks.append(task)
         return task
 
