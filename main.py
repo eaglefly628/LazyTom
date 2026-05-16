@@ -84,7 +84,7 @@ def main(page: ft.Page):
     # ── Content area with theme background image ────────
     bg_image = ft.Image(
         src=theme.BG_IMAGE,
-        fit=ft.ImageFit.COVER,
+        fit=ft.BoxFit.COVER,
         expand=True,
     )
     bg_overlay = ft.Container(
