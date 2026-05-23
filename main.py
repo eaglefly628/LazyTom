@@ -16,15 +16,6 @@ from views.settings_view import SettingsView
 import storage
 
 def main(page: ft.Page):
-    # Load saved theme before any UI is built
-    saved_settings = storage.load_settings()
-    saved_theme = saved_settings.get("theme")
-    if saved_theme:
-        try:
-            theme.set_theme(theme.ThemeName(saved_theme))
-        except ValueError:
-            pass
-
     page.title = "LazyTom"
     page.bgcolor = theme.BG_COLOR
     page.padding = 0
@@ -57,11 +48,7 @@ def main(page: ft.Page):
         timer_view._rebuild()
 
     def on_theme_changed():
-        # Rebuild everything when theme switches
-        page.bgcolor = theme.BG_COLOR
-        bg_image.src = theme.BG_IMAGE
-        nav_bar.bgcolor = theme.BG_COLOR
-        nav_bar.indicator_color = theme.TOMATO_RED
+        # Single theme now — just rebuild views
         timer_view._rebuild()
         points_view.rebuild()
         tasks_view.rebuild()
@@ -87,26 +74,12 @@ def main(page: ft.Page):
     tasks_control = tasks_view.build(page)
     settings_control = settings_view.build(page)
 
-    # ── Content area with theme background image ────────
-    bg_image = ft.Image(
-        src=theme.BG_IMAGE,
-        fit=ft.BoxFit.COVER,
-        expand=True,
-    )
-    bg_overlay = ft.Container(
-        expand=True,
-        bgcolor="#00000040",  # subtle dark overlay for readability
-    )
-    content_inner = ft.Container(expand=True, content=timer_control)
-
-    content = ft.Stack(
-        expand=True,
-        controls=[bg_image, bg_overlay, content_inner],
-    )
+    # ── Content area — flat warm linen bg, no background image ────
+    content = ft.Container(expand=True, content=timer_control)
 
     def switch_tab(index: int):
         views = [timer_control, points_control, tasks_control, settings_control]
-        content_inner.content = views[index]
+        content.content = views[index]
         if index == 1:
             points_view.rebuild()
         if index == 2:
@@ -116,7 +89,7 @@ def main(page: ft.Page):
     # ── Bottom navigation ────────────────────────────────
     nav_bar = ft.NavigationBar(
         bgcolor=theme.BG_COLOR,
-        indicator_color=theme.TOMATO_RED,
+        indicator_color=theme.MOSS,
         selected_index=0,
         on_change=lambda e: switch_tab(e.control.selected_index),
         destinations=[
@@ -126,9 +99,9 @@ def main(page: ft.Page):
                 label="Timer",
             ),
             ft.NavigationBarDestination(
-                icon=ft.Icons.STARS_OUTLINED,
-                selected_icon=ft.Icons.STARS,
-                label="Points",
+                icon=ft.Icons.YARD_OUTLINED,
+                selected_icon=ft.Icons.YARD,
+                label="Garden",
             ),
             ft.NavigationBarDestination(
                 icon=ft.Icons.CHECKLIST_OUTLINED,

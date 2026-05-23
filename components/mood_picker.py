@@ -26,7 +26,6 @@ def show_mood_picker(page: ft.Page, title: str, on_selected):
         on_selected: Callback `fn(mood: MoodLevel)` invoked once the user picks one.
     """
 
-    # We build a fresh overlay each call and remove it on selection / dismiss.
     container_ref: dict = {}
 
     def _close():
@@ -40,7 +39,6 @@ def show_mood_picker(page: ft.Page, title: str, on_selected):
         if on_selected:
             on_selected(mood)
 
-    # Build the mood buttons (largest at top: ENERGETIC → EXHAUSTED)
     mood_order = [
         MoodLevel.ENERGETIC,
         MoodLevel.NORMAL,
@@ -53,7 +51,7 @@ def show_mood_picker(page: ft.Page, title: str, on_selected):
         label = MOOD_LABELS[mood]
         btn = ft.Container(
             bgcolor=theme.SURFACE_COLOR,
-            border=ft.border.all(1, theme.DIVIDER_COLOR),
+            border=ft.border.all(1, theme.LINE_STRONG),
             border_radius=14,
             padding=ft.Padding.symmetric(horizontal=PADDING_LG, vertical=PADDING_MD),
             ink=True,
@@ -105,7 +103,6 @@ def show_mood_picker(page: ft.Page, title: str, on_selected):
         ),
     )
 
-    # Backdrop + centered dialog. Tap backdrop to dismiss.
     backdrop = ft.Container(
         expand=True,
         bgcolor="#00000080",

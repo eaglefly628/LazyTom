@@ -1,9 +1,16 @@
-"""Timer view — the main screen with countdown ring and controls."""
+"""Timer view — the main screen with countdown ring and controls.
+
+New warm-linen design with session pills, date subtitle, streak chip.
+"""
 
 import asyncio
+from datetime import datetime
 import flet as ft
 import theme
-from theme import BODY_FONT_SIZE, CAPTION_FONT_SIZE, PADDING_LG, PADDING_XL, TITLE_FONT_SIZE
+from theme import (
+    BODY_FONT_SIZE, CAPTION_FONT_SIZE, PADDING_LG, PADDING_XL,
+    PAGE_TITLE_SIZE, PADDING_MD,
+)
 
 from timer_engine import PomodoroTimer, TimerStatus
 from points_engine import PointsManager
@@ -16,6 +23,8 @@ import storage
 
 RENDER_FPS = 30
 TEST_DURATION_SECONDS = 10
+TOTAL_SESSIONS = 5
+
 
 class TimerView:
     """Main timer screen with countdown ring, controls, and points badge."""
@@ -31,6 +40,8 @@ class TimerView:
         self._seconds_since_tick = 0.0
         self._current_task = None
         self._current_mood_log = None
+        self._completed_sessions = 0
+        self._current_session = 1
 
         settings = storage.load_settings()
         duration = settings.get("focus_minutes", 25)
@@ -43,6 +54,9 @@ class TimerView:
         duration_min = self.timer.total_seconds / 60.0
         self.points.award_for_pomodoro(max(1, round(duration_min)))
         storage.save_points(self.points.to_dict())
+        self._completed_sessions += 1
+        if self._current_session < TOTAL_SESSIONS:
+            self._current_session += 1
         if self.on_points_changed:
             self.on_points_changed()
         self._rebuild()
@@ -56,7 +70,7 @@ class TimerView:
                 self.mood.set_current_mood(mood)
                 storage.save_mood(self.mood.to_dict())
 
-            show_mood_picker(self._page, "完成后感觉如何?", _on_after)
+            show_mood_picker(self._page, "How do you feel now?", _on_after)
 
     async def _render_loop(self):
         """Single loop: smooth ring animation at 30fps + 1-second ticks."""
@@ -101,14 +115,12 @@ class TimerView:
             self._rebuild()
             return
         if self.timer.status in (TimerStatus.IDLE, TimerStatus.COMPLETED, TimerStatus.PAUSED):
-            # Fresh start from idle/completed → check mood. Pause-resume skips picker.
             from_paused = self.timer.status == TimerStatus.PAUSED
             if not from_paused and self._page is not None and not self.mood.has_mood_today():
                 def _on_before(mood: MoodLevel):
                     self._begin_session(mood)
-                show_mood_picker(self._page, "现在感觉怎么样?", _on_before)
+                show_mood_picker(self._page, "How are you feeling?", _on_before)
                 return
-            # Use today's mood if known and not resuming a paused session.
             mood_before = self.mood.current_mood if (not from_paused and self.mood.has_mood_today()) else None
             self._begin_session(mood_before)
 
@@ -167,44 +179,126 @@ class TimerView:
         }
         return status_map.get(self.timer.status, "")
 
+    def _build_session_pills(self) -> ft.Row:
+        """Build 5 small session progress pills."""
+        pills = []
+        for i in range(1, TOTAL_SESSIONS + 1):
+            if i <= self._completed_sessions:
+                color = theme.MOSS
+            elif i == self._current_session:
+                color = theme.LEAF
+            else:
+                color = theme.DIVIDER_COLOR
+            pill = ft.Container(
+                width=22,
+                height=6,
+                border_radius=3,
+                bgcolor=color,
+            )
+            pills.append(pill)
+        return ft.Row(
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=6,
+            controls=pills,
+        )
+
+    def _get_end_time_str(self) -> str | None:
+        """Calculate the end time for running/idle timer."""
+        if self.timer.status == TimerStatus.RUNNING:
+            remaining = self.timer.remaining_seconds
+        elif self.timer.status == TimerStatus.IDLE:
+            remaining = self.timer.total_seconds
+        else:
+            return None
+        now = datetime.now()
+        end = now.replace(
+            hour=(now.hour + (now.minute * 60 + now.second + remaining) // 3600) % 24,
+            minute=((now.minute * 60 + now.second + remaining) % 3600) // 60,
+            second=0,
+        )
+        return f"ends at {end.strftime('%I:%M %p').lstrip('0')}"
+
     def _build_content(self) -> ft.Column:
         is_running = self.timer.status == TimerStatus.RUNNING
         is_idle = self.timer.status == TimerStatus.IDLE
+        is_paused = self.timer.status == TimerStatus.PAUSED
 
-        top_bar = ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            controls=[
-                ft.Text(
-                    "LazyTom",
-                    size=TITLE_FONT_SIZE,
-                    color=theme.TEXT_PRIMARY,
-                    weight=ft.FontWeight.W_700,
-                ),
-                create_points_badge(self.points.balance),
-            ],
+        # -- Header --
+        now = datetime.now()
+        date_str = now.strftime("%A, %B %d").upper()
+
+        header = ft.Container(
+            padding=ft.Padding.symmetric(horizontal=PADDING_LG),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+                controls=[
+                    ft.Column(
+                        spacing=2,
+                        controls=[
+                            ft.Text(
+                                "LazyTom",
+                                size=PAGE_TITLE_SIZE,
+                                color=theme.TEXT_PRIMARY,
+                                weight=ft.FontWeight.W_700,
+                            ),
+                            ft.Text(
+                                date_str,
+                                size=CAPTION_FONT_SIZE,
+                                color=theme.TEXT_SECONDARY,
+                                weight=ft.FontWeight.W_600,
+                            ),
+                        ],
+                    ),
+                    create_points_badge(self.points.balance),
+                ],
+            ),
         )
+
+        # -- Session pills --
+        session_pills = self._build_session_pills()
+
+        # -- Session caption --
+        session_type = "Focus" if is_running or is_idle else ("Paused" if is_paused else "Done")
+        session_caption = ft.Text(
+            f"Session {self._current_session} of {TOTAL_SESSIONS} · {session_type}",
+            size=CAPTION_FONT_SIZE,
+            color=theme.TEXT_SECONDARY,
+            weight=ft.FontWeight.W_600,
+            text_align=ft.TextAlign.CENTER,
+        )
+
+        # -- Ring area --
+        task_name = self._current_task.name if self._current_task else None
+        end_time = self._get_end_time_str()
 
         ring = create_countdown_ring(
             self.timer.formatted_time,
             self.timer.smooth_progress,
+            task_name=task_name,
+            end_time_str=end_time,
         )
 
         can_adjust = is_idle
-        minus_btn = ft.IconButton(
-            icon=ft.Icons.REMOVE_ROUNDED,
-            icon_color=theme.TEXT_PRIMARY if can_adjust else theme.TEXT_SECONDARY,
-            icon_size=28,
-            on_click=lambda _: self._adjust_duration(-5),
-            disabled=not can_adjust or self.timer.total_seconds <= 60,
+        minus_btn = ft.Container(
+            width=36,
+            height=36,
+            border_radius=18,
+            border=ft.border.all(1, theme.LINE_STRONG) if can_adjust else None,
+            alignment=ft.Alignment.CENTER,
+            on_click=lambda _: self._adjust_duration(-5) if can_adjust else None,
             opacity=1.0 if can_adjust else 0.0,
+            content=ft.Icon(ft.Icons.REMOVE_ROUNDED, color=theme.TEXT_PRIMARY, size=20),
         )
-        plus_btn = ft.IconButton(
-            icon=ft.Icons.ADD_ROUNDED,
-            icon_color=theme.TEXT_PRIMARY if can_adjust else theme.TEXT_SECONDARY,
-            icon_size=28,
-            on_click=lambda _: self._adjust_duration(5),
-            disabled=not can_adjust,
+        plus_btn = ft.Container(
+            width=36,
+            height=36,
+            border_radius=18,
+            border=ft.border.all(1, theme.LINE_STRONG) if can_adjust else None,
+            alignment=ft.Alignment.CENTER,
+            on_click=lambda _: self._adjust_duration(5) if can_adjust else None,
             opacity=1.0 if can_adjust else 0.0,
+            content=ft.Icon(ft.Icons.ADD_ROUNDED, color=theme.TEXT_PRIMARY, size=20),
         )
         ring_row = ft.Row(
             alignment=ft.MainAxisAlignment.CENTER,
@@ -213,6 +307,7 @@ class TimerView:
             controls=[minus_btn, ring, plus_btn],
         )
 
+        # -- Controls --
         controls = create_timer_controls(
             is_running=is_running,
             is_idle=is_idle,
@@ -220,48 +315,48 @@ class TimerView:
             on_cancel=self._on_cancel,
         )
 
-        status = ft.Text(
-            self._status_text(),
-            size=BODY_FONT_SIZE,
-            color=theme.TOMATO_RED if self.timer.status == TimerStatus.COMPLETED else theme.TEXT_SECONDARY,
-            text_align=ft.TextAlign.CENTER,
-        )
-
-        completed_text = None
-        if self.timer.status == TimerStatus.COMPLETED:
+        # -- Bottom caption --
+        if is_idle:
+            bottom_caption = ft.Text(
+                "Notifications muted · Tap to start",
+                size=CAPTION_FONT_SIZE,
+                color=theme.TEXT_SECONDARY,
+                text_align=ft.TextAlign.CENTER,
+            )
+        elif self.timer.status == TimerStatus.COMPLETED:
             earned = max(1, round(self.timer.total_seconds / 60.0 * 0.4))
-            completed_text = ft.Text(
+            bottom_caption = ft.Text(
                 f"+{earned} points!",
-                size=TITLE_FONT_SIZE,
-                color=theme.TOMATO_RED,
+                size=BODY_FONT_SIZE + 4,
+                color=theme.MOSS,
                 weight=ft.FontWeight.W_700,
                 text_align=ft.TextAlign.CENTER,
             )
+        else:
+            bottom_caption = ft.Container()
 
         content_controls = [
-            ft.Container(
-                padding=ft.Padding.symmetric(horizontal=PADDING_LG),
-                content=top_bar,
-            ),
+            header,
+            ft.Container(height=PADDING_MD),
+            session_pills,
+            ft.Container(height=4),
+            session_caption,
             ft.Container(expand=True),
             ft.Container(alignment=ft.Alignment.CENTER, content=ring_row),
-            ft.Container(height=PADDING_XL),
+            ft.Container(height=PADDING_LG),
             controls,
-            ft.Container(height=12),
-            status,
+            ft.Container(height=8),
+            bottom_caption,
         ]
 
-        if completed_text:
-            content_controls.insert(-1, completed_text)
-
-        # Test button between status and bottom spacer
+        # Test button (only in idle)
         if is_idle:
-            content_controls.append(ft.Container(height=8))
+            content_controls.append(ft.Container(height=4))
             content_controls.append(
                 ft.IconButton(
                     icon=ft.Icons.BUG_REPORT_OUTLINED,
                     icon_color=theme.TEXT_SECONDARY,
-                    icon_size=20,
+                    icon_size=18,
                     tooltip=f"Test ({TEST_DURATION_SECONDS}s)",
                     on_click=self._set_test_duration,
                 ),

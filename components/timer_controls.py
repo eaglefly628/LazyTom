@@ -1,16 +1,21 @@
-"""Timer control buttons — play/pause and cancel."""
+"""Timer control buttons — pill-style Begin Focus / Pause / Cancel."""
 
 import flet as ft
 import theme
-from theme import PADDING_MD
+from theme import PADDING_MD, BODY_FONT_SIZE
+
 
 def create_timer_controls(
     is_running: bool,
     is_idle: bool,
     on_play_pause,
     on_cancel,
-) -> ft.Row:
-    """Build the play/pause and cancel buttons.
+) -> ft.Column:
+    """Build the timer control buttons.
+
+    - Idle: "Begin Focus" moss pill button (no cancel visible)
+    - Running: "Pause" pill + cancel icon
+    - Paused: "Resume" pill + cancel icon
 
     Args:
         is_running: Whether the timer is currently counting down.
@@ -18,31 +23,100 @@ def create_timer_controls(
         on_play_pause: Callback for the play/pause button.
         on_cancel: Callback for the cancel button.
     """
-    # Play/pause button — larger, primary action
-    play_pause_icon = ft.Icons.PAUSE_ROUNDED if is_running else ft.Icons.PLAY_ARROW_ROUNDED
-    play_pause_btn = ft.IconButton(
-        icon=play_pause_icon,
-        icon_color=theme.TEXT_PRIMARY,
-        icon_size=48,
-        on_click=on_play_pause,
-        style=ft.ButtonStyle(
-            shape=ft.CircleBorder(),
-            bgcolor=theme.TOMATO_RED,
-            padding=PADDING_MD,
-        ),
-    )
+    controls = []
 
-    # Cancel button — stop current session, only visible when timer is active
-    cancel_btn = ft.IconButton(
-        icon=ft.Icons.CLOSE_ROUNDED,
-        icon_color=theme.TEXT_SECONDARY if is_idle else theme.TEXT_PRIMARY,
-        icon_size=28,
-        on_click=on_cancel,
-        disabled=is_idle,
-    )
+    if is_idle:
+        # Big inviting "Begin Focus" pill — moss green
+        begin_btn = ft.Container(
+            bgcolor=theme.MOSS,
+            border_radius=28,
+            padding=ft.Padding.symmetric(horizontal=32, vertical=14),
+            ink=True,
+            on_click=on_play_pause,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+                controls=[
+                    ft.Icon(ft.Icons.PLAY_ARROW_ROUNDED, color=theme.CREAM, size=24),
+                    ft.Text(
+                        "Begin Focus",
+                        size=BODY_FONT_SIZE + 2,
+                        color=theme.CREAM,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+            ),
+        )
+        controls.append(begin_btn)
+    elif is_running:
+        # Running state: Pause pill + cancel
+        pause_btn = ft.Container(
+            bgcolor=theme.CLAY,
+            border_radius=28,
+            padding=ft.Padding.symmetric(horizontal=32, vertical=14),
+            ink=True,
+            on_click=on_play_pause,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+                controls=[
+                    ft.Icon(ft.Icons.PAUSE_ROUNDED, color=theme.CREAM, size=24),
+                    ft.Text(
+                        "Pause",
+                        size=BODY_FONT_SIZE + 2,
+                        color=theme.CREAM,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+            ),
+        )
+        cancel_btn = ft.TextButton(
+            content=ft.Text(
+                "Cancel",
+                size=BODY_FONT_SIZE,
+                color=theme.TEXT_SECONDARY,
+            ),
+            on_click=on_cancel,
+        )
+        controls.append(pause_btn)
+        controls.append(ft.Container(height=4))
+        controls.append(cancel_btn)
+    else:
+        # Paused state: Resume pill + cancel
+        resume_btn = ft.Container(
+            bgcolor=theme.MOSS,
+            border_radius=28,
+            padding=ft.Padding.symmetric(horizontal=32, vertical=14),
+            ink=True,
+            on_click=on_play_pause,
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+                controls=[
+                    ft.Icon(ft.Icons.PLAY_ARROW_ROUNDED, color=theme.CREAM, size=24),
+                    ft.Text(
+                        "Resume",
+                        size=BODY_FONT_SIZE + 2,
+                        color=theme.CREAM,
+                        weight=ft.FontWeight.W_600,
+                    ),
+                ],
+            ),
+        )
+        cancel_btn = ft.TextButton(
+            content=ft.Text(
+                "Cancel",
+                size=BODY_FONT_SIZE,
+                color=theme.TEXT_SECONDARY,
+            ),
+            on_click=on_cancel,
+        )
+        controls.append(resume_btn)
+        controls.append(ft.Container(height=4))
+        controls.append(cancel_btn)
 
-    return ft.Row(
-        alignment=ft.MainAxisAlignment.CENTER,
-        spacing=24,
-        controls=[cancel_btn, play_pause_btn],
+    return ft.Column(
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        spacing=0,
+        controls=controls,
     )
